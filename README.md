@@ -2,11 +2,9 @@
 
 A static, English academic profile made for GitHub Pages. The content is based on the supplied four-page CV PDF. The source PDF remains untouched.
 
-## Publish with GitHub Pages
+## Website
 
-This repository is currently private. GitHub Pages is not enabled. Publishing the website publicly requires a separate decision.
-
-To use a project repository instead, enable Pages for that repository and open its project URL. Relative asset paths work in either setup.
+[sangmin9242.github.io](https://sangmin9242.github.io/)
 
 ## Update the CV
 
