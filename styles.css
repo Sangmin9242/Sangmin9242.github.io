@@ -10,3 +10,5 @@
 .ko-page .hero-profile h1,.ko-page .hero-about-heading,.ko-page .section h2,.ko-page .research-grid h3,.ko-page .pub-group h3,.ko-page .publication-list a,.ko-page .pub-title,.ko-page .entry h3,.ko-page .subheading{font-family:'Noto Sans KR',sans-serif;letter-spacing:-.045em}
 .ko-page .hero-profile h1{letter-spacing:-.07em}
 @media(max-width:600px){.site-header nav a[href='#projects'],.site-header nav a[href='#contact']{display:none}.site-header nav{gap:12px}.language-switch{padding:4px 7px}.ko-page .hero-profile h1{font-size:clamp(3rem,12vw,4.1rem)}}
+
+.publication-list .doi-link{display:inline-block;font:600 .82rem/1.5 'DM Sans',Arial,sans-serif;letter-spacing:0;color:var(--blue);text-decoration:underline;text-underline-offset:3px;overflow-wrap:anywhere}.ko-page .publication-list .doi-link{font-family:'DM Sans',Arial,sans-serif}
