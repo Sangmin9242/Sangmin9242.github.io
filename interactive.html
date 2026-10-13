@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Explore Sangmin Lee's research in construction robotics, computer vision, and digital construction.">
+  <meta name="theme-color" content="#091725">
+  <title>Sangmin Lee — Construction, in motion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="experience.css?v=20261014-journey">
+</head>
+<body>
+  <a class="skip-link" href="#research-controls">Skip to research</a>
+  <header class="masthead">
+    <a class="identity" href="index.html" data-transition aria-label="Sangmin Lee home"><span class="identity-mark">sl<span>↗</span></span><span class="identity-name">Sangmin Lee</span></a>
+    <nav aria-label="Main navigation"><button data-open="publications" data-i18n="publications">Publications</button><a id="cv-link" href="index.html" data-transition>CV <span>↗</span></a><button id="language" aria-label="Switch to Korean">한국어</button></nav>
+  </header>
+  <main id="main">
+    <section class="world" aria-label="Interactive construction research scene">
+      <div class="scene" id="scene" aria-hidden="true"></div>
+      <div class="scene-shade"></div>
+      <div class="hero-intro"><p class="intro-label" data-i18n="introLabel">Construction, in motion</p><h1 data-i18n="headline">The site is<br>my laboratory.</h1><p class="intro-description" data-i18n="intro">I study how robots see, understand, and work in the built environment.</p><button class="explore-button" id="explore" data-i18n="explore">Explore the site <span>↓</span></button></div>
+      <div class="scene-label"><span class="status-dot"></span><span data-i18n="sceneLabel">A field of possibilities</span></div>
+      <div id="hotspots" class="hotspots">
+        <button class="hotspot" data-research="robotics"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="robotics">Construction robotics</span></button>
+        <button class="hotspot" data-research="vision"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="vision">Computer vision</span></button>
+        <button class="hotspot" data-research="digital"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="digital">Digital construction</span></button>
+        <a class="hotspot avatar-hotspot" id="avatar-link" data-scene-key="avatar" href="index.html"><span class="hotspot-dot"></span><span class="hotspot-text" id="avatar-label">Sangmin Lee · CV</span></a>
+        <button class="hotspot plane-hotspot" id="airplane-link" data-scene-key="airplane"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="conferences">International conferences</span></button>
+      </div>
+      <div class="scene-tools"><button id="zoom-in" aria-label="Zoom in">＋</button><button id="zoom-out" aria-label="Zoom out">−</button><button id="rotate" aria-pressed="false" data-i18n="rotate">Rotate view</button><button id="reset" data-i18n="reset">Reset view</button></div>
+      <p class="interaction-hint" data-i18n="hint">Drag to look around · Select a research point</p>
+      <div class="scene-fallback" hidden><p data-i18n="fallback">Explore the research areas below.</p></div>
+      <div class="research-controls" id="research-controls" aria-label="Research areas">
+        <button data-research="robotics"><span class="control-icon">↗</span><span><small data-i18n="roboticsTag">From motion to execution</small><strong data-i18n="robotics">Construction robotics</strong></span><span class="control-arrow">↗</span></button>
+        <button data-research="vision"><span class="control-icon">⌗</span><span><small data-i18n="visionTag">From pixels to perception</small><strong data-i18n="vision">Computer vision</strong></span><span class="control-arrow">↗</span></button>
+        <button data-research="digital"><span class="control-icon">◫</span><span><small data-i18n="digitalTag">From data to the field</small><strong data-i18n="digital">Digital construction</strong></span><span class="control-arrow">↗</span></button>
+      </div>
+      <section id="journey-view" class="journey-view" aria-labelledby="journey-title" hidden>
+        <div class="journey-heading"><button id="journey-back">← Back to the site</button><h2 id="journey-title">Research across borders</h2><p id="journey-hint">Drag to rotate · Scroll to zoom</p></div>
+        <article class="journey-card" aria-live="polite">
+          <figure><img id="conference-photo" alt=""><figcaption><span id="conference-landmark"></span><span id="conference-credit"></span></figcaption></figure>
+          <div class="conference-details"><p id="conference-date"></p><h3 id="conference-name"></h3><p id="conference-city"></p><p id="conference-full"></p><h4 id="conference-related"></h4><ol id="conference-papers" class="publication-list"></ol><a id="conference-source" target="_blank" rel="noopener noreferrer"></a></div>
+        </article>
+        <nav class="journey-stops" aria-label="Conference destinations"><button id="journey-prev" aria-label="Previous conference">‹</button><button data-conference="ccc"><strong>CCC 2025</strong><small>Zadar, Croatia</small></button><button data-conference="isarc"><strong>ISARC 2025</strong><small>Montréal, Canada</small></button><button data-conference="ec3"><strong>EC³ 2026</strong><small>Corfu, Greece</small></button><button id="journey-next" aria-label="Next conference">›</button></nav>
+      </section>
+    </section>
+    <section class="index-bar"><button class="profile-link" data-open="about"><span class="status-dot"></span><span data-i18n="student">Master's student · SeoulTech</span></button><div><button data-open="projects" data-i18n="projects">R&amp;D projects</button><button data-open="ip" data-i18n="ip">Patents &amp; software</button><button data-open="awards" data-i18n="awards">Awards</button></div><a href="mailto:lsm010714@seoultech.ac.kr" data-i18n="contact">Get in touch ↗</a></section>
+  </main>
+  <aside class="detail-panel" id="detail-panel" role="dialog" aria-modal="true" aria-labelledby="panel-title" hidden>
+    <div class="panel-top"><span id="panel-kind"></span><div class="panel-actions"><button id="panel-language">한국어</button><button id="close-panel" aria-label="Close details">×</button></div></div>
+    <nav class="panel-research-nav" aria-label="Switch research area"><button data-research="robotics" data-i18n="robotics">Construction robotics</button><button data-research="vision" data-i18n="vision">Computer vision</button><button data-research="digital" data-i18n="digital">Digital construction</button></nav>
+    <div class="panel-scroll"><h2 id="panel-title"></h2><div id="panel-body"></div></div>
+  </aside>
+  <script type="module" src="experience.js?v=20261014-journey"></script>
+  <script src="page-transition.js"></script>
+</body>
+</html>

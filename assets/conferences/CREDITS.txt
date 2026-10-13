@@ -1,0 +1,30 @@
+Conference metadata
+CCC 2025: 14–17 June 2025, Petrčane / Zadar, Croatia.
+https://2025.creative-construction-conference.com/program.php
+ISARC 2025: 28–31 July 2025, Montréal, Canada.
+https://www.iaarc.org/isarc-2025/
+EC³ 2026: 12–15 July 2026, Corfu, Greece.
+https://ec-3.org/conferences/
+
+Landmark photographs (not personal conference photographs)
+zadar.jpg — Sea Organ, Zadar, by Ben Snooks. CC BY-SA 2.0.
+https://commons.wikimedia.org/wiki/File:Zadar-Sea-Organ.jpg
+https://creativecommons.org/licenses/by-sa/2.0/
+Downloaded Wikimedia's 1280px rendition; no edits.
+
+montreal.jpg — Old Port of Montréal, by Gjm130. CC BY-SA 3.0.
+https://commons.wikimedia.org/wiki/File:Old_Port_of_Montreal_(French-_Vieux-Port_de_Montr%C3%A9al).jpg
+https://creativecommons.org/licenses/by-sa/3.0/
+Original image; no edits.
+
+corfu.jpg — The Old Fortress and the Old Town of Corfu, by Martin Falbisoner. CC BY-SA 4.0.
+https://commons.wikimedia.org/wiki/File:The_Old_Fortress_and_the_Old_Town_of_Corfu_-_September_2017.jpg
+https://creativecommons.org/licenses/by-sa/4.0/
+Downloaded Wikimedia's 1280px rendition; no edits.
+Photographs appear in a CSS crop inside the cards. Attribution and license links appear below each photograph.
+
+world-110m.json — world-atlas 2, based on public-domain Natural Earth 1:110m data.
+https://github.com/topojson/world-atlas
+https://www.naturalearthdata.com/about/terms-of-use/
+https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json
+The illustrative arcs connect Seoul to each conference city; they are not actual flight itineraries.
