@@ -1,0 +1,10 @@
+PBR texture sources: Poly Haven, CC0.
+
+Concrete Wall 001 — Poly Haven
+https://polyhaven.com/a/concrete_wall_001
+
+Brown Mud 02 — Rob Tuytel
+https://polyhaven.com/a/brown_mud_02
+
+1K JPG diffuse, OpenGL normal, and roughness maps are bundled locally.
+License information: https://polyhaven.com/license

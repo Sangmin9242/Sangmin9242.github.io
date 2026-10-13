@@ -9,6 +9,8 @@ https://sangmin9242.github.io/
 - `index.html`: interactive homepage; switch languages in place.
 - `experience.js`: site scene, interactions, and localized research descriptions.
 - `experience.css`: responsive presentation.
+- `scene-materials.js`: physical surface maps, reflective environment, and monitor screen.
+- `assets/materials/`: locally hosted CC0 PBR textures; source credits in `CREDITS.txt`.
 - `cv.html` / `cv-ko.html`: full English and Korean CVs; also the content sources for homepage panels.
 - `ko.html`: compatibility redirect to the Korean homepage.
 - `vendor/three.module.js`: Three.js 0.160.1 (MIT); license stored alongside it.
@@ -23,4 +25,6 @@ The supplied NAS PDF remains read only. The 3D construction scene is an original
 
 ## Preview
 
-Serve this folder over HTTP, for example `python -m http.server 8765`, then open `http://localhost:8765/`. ES modules and CV loading require HTTP. WebGL rendering is optional; the research buttons and full CV remain available without it.
+Serve this folder over HTTP, for example `python -m http.server 8765`, then open `http://localhost:8765/`. The researcher at the field-office computer links directly to the full CV in the selected language.
+
+ES modules and CV loading require HTTP. WebGL rendering is optional; the research buttons and full CV remain available without it.
