@@ -190,9 +190,10 @@ function createScene() {
   function focus(kind){const point=hotspotAnchors[kind]||new THREE.Vector3(1,5,0);targetAngle=.5;targetPitch=.4;targetDistance=kind==='robotics'||kind==='vision'?23:31;targetLook.copy(point).add(new THREE.Vector3(9,0,0));autoRotate=false;}
   function resize(){width=container.clientWidth;height=container.clientHeight;mobile=width<=600;renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix();reset();if(mobile){lookAt.copy(targetLook);distance=targetDistance;}if(currentPanel)focus(currentPanel);}
   const observer=new ResizeObserver(resize);observer.observe(container);
-  renderer.domElement.addEventListener('pointerdown',event=>{if(event.pointerType==='touch')return;drag=true;moved=false;lastX=event.clientX;renderer.domElement.setPointerCapture(event.pointerId);});
+  renderer.domElement.addEventListener('pointerdown',event=>{drag=true;moved=false;lastX=event.clientX;renderer.domElement.setPointerCapture(event.pointerId);});
   renderer.domElement.addEventListener('pointermove',event=>{if(!drag)return;const dx=event.clientX-lastX;if(Math.abs(dx)>2)moved=true;targetAngle-=dx*.005;lastX=event.clientX;});
   renderer.domElement.addEventListener('pointerup',()=>{drag=false;});
+  renderer.domElement.addEventListener('pointercancel',()=>{drag=false;});
   const raycaster=new THREE.Raycaster();const pointer=new THREE.Vector2();
   renderer.domElement.addEventListener('click',event=>{if(moved||currentPanel)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);for(const [group,kind] of [[robot,'robotics'],[sensor,'vision'],[building,'digital'],[crane,'digital']]){if(raycaster.intersectObject(group,true).length){openPanel(kind);return;}}});
   let previous=performance.now();
