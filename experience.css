@@ -17,3 +17,11 @@
 body.page-leaving{animation:scene-away .24s ease-in both}body.page-entering{animation:scene-arrive .45s ease-out both}@keyframes scene-away{to{opacity:0;transform:scale(1.03)}}@keyframes scene-arrive{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:none}}body.journey-open .journey-view{animation:scene-arrive .65s ease-out}@media(prefers-reduced-motion:reduce){body.page-entering,body.page-leaving{animation:none!important}}
 
 .departure-sky{position:absolute;inset:0;z-index:8;pointer-events:none;background:#c7dce5;opacity:0;transition:opacity .65s ease-out}body.departing .hero-intro,body.departing .hotspots,body.departing .research-controls,body.departing .scene-tools,body.departing .scene-label,body.departing .interaction-hint{opacity:0;pointer-events:none;transition:opacity .35s}body.departing .scene-shade{opacity:0;transition:opacity .6s}
+
+.office-button{display:block;margin-top:16px;padding:10px 0;font-size:13px;color:var(--muted);border-bottom:1px solid var(--line)}.office-hotspot .hotspot-dot{background:#d9c6a1;box-shadow:0 0 0 1px #c2aa7d}@media(max-width:600px){.office-button{margin-top:8px;padding:6px 0;font-size:12px}.office-hotspot .hotspot-text{font-size:10px}}
+
+.conference-map-labels{position:absolute;inset:0;pointer-events:none}.conference-map-label{position:absolute;width:149px;padding:9px 12px;text-align:left;border:1px solid #8aabbc77;border-radius:4px;background:#102333ef;box-shadow:0 4px 18px #0003;pointer-events:auto}.conference-map-label strong{display:block;font-size:13px;font-weight:500;color:#e7eff1}.conference-map-label small{display:block;font-size:10px;margin-top:3px;color:var(--muted)}.conference-map-label[aria-pressed=true]{border-color:var(--orange)}.conference-map-label[aria-pressed=true] strong{color:var(--orange)}@media(max-width:600px){.conference-map-label{width:134px;padding:7px 9px}.conference-map-label strong{font-size:11px}.conference-map-label small{font-size:9px}}
+
+.departure-skip{position:absolute;right:5vw;bottom:38px;z-index:9;border:1px solid var(--line);padding:10px 15px;background:#102333dc;font-size:12px;border-radius:4px}
+
+.spray-controls{display:flex;flex-wrap:wrap;gap:10px;margin:22px 0}.spray-controls button{padding:10px 14px;border:1px solid var(--line);border-radius:4px;font-size:12px;color:var(--orange)}.spray-controls button:hover{border-color:var(--orange)}

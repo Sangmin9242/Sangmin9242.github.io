@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import { airplane } from './airplane.js';
+import { airplane } from './airplane.js?v=20261014-coating';
 
 export const conferences=[
   {id:'ccc',attended:true,name:'CCC 2025',full:'Creative Construction Conference',lat:44.12,lon:15.23,city:{en:'Zadar, Croatia',ko:'크로아티아 자다르'},date:{en:'14–17 June 2025',ko:'2025년 6월 14–17일'},landmark:{en:'Sea Organ',ko:'바다 오르간'},photo:'zadar',author:'Ben Snooks',license:'CC BY-SA 2.0',licenseURL:'https://creativecommons.org/licenses/by-sa/2.0/',photoURL:'https://commons.wikimedia.org/wiki/File:Zadar-Sea-Organ.jpg',source:'https://2025.creative-construction-conference.com/program.php',papers:['CCC2025/0052']},
@@ -32,9 +32,11 @@ export function conferenceJourney({scene,sourceDocument,getLanguage,onSelect,red
   const origin={lat:37.57,lon:126.98};const originPin=new THREE.Mesh(new THREE.SphereGeometry(.045,12,10),new THREE.MeshBasicMaterial({color:0xbdd7d8}));originPin.position.copy(locationVector(origin.lat,origin.lon,radius+.04));group.add(originPin);
   const pins=conferences.map(event=>{const pin=new THREE.Mesh(new THREE.SphereGeometry(.067,16,12),new THREE.MeshBasicMaterial({color:0xefaa58}));pin.position.copy(locationVector(event.lat,event.lon,radius+.045));pin.userData.event=event.id;group.add(pin);return pin;});
   const routes=conferences.map(event=>{const points=routePoints(origin,event);const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(points),new THREE.LineBasicMaterial({color:0xd7a15b,transparent:true,opacity:.22}));group.add(line);return {line,points};});
-  const plane=airplane();plane.scale.setScalar(.075);group.add(plane);plane.traverse(node=>{if(node.isMesh){node.castShadow=false;node.receiveShadow=false;}});
+  const plane=airplane();plane.userData.setGear(1);plane.scale.setScalar(.075);group.add(plane);plane.traverse(node=>{if(node.isMesh){node.castShadow=false;node.receiveShadow=false;}});
   let active=0,started=0,request=0;
   const shell=document.querySelector('#journey-view');
+  const mapLabels=document.createElement('div');mapLabels.className='conference-map-labels';shell.append(mapLabels);
+  const labels=conferences.map(event=>{const button=document.createElement('button');button.className='conference-map-label';button.dataset.mapConference=event.id;button.innerHTML='<strong></strong><small></small>';button.onclick=()=>select(event.id);mapLabels.append(button);return button;});
   async function render(){
     const serial=++request;const lang=getLanguage(),t=words[lang],event=conferences[active];
     document.querySelector('#journey-title').textContent=t.title;document.querySelector('#journey-back').textContent='← '+t.back;document.querySelector('#journey-prev').setAttribute('aria-label',t.prev);document.querySelector('#journey-next').setAttribute('aria-label',t.next);
@@ -46,6 +48,7 @@ export function conferenceJourney({scene,sourceDocument,getLanguage,onSelect,red
     const link=document.querySelector('#conference-source');link.href=event.source;link.textContent=t.event+' ↗';
     document.querySelector('#conference-related').textContent=t.related;
     document.querySelectorAll('button[data-conference]').forEach(b=>{b.classList.toggle('active',b.dataset.conference===event.id);b.setAttribute('aria-pressed',String(b.dataset.conference===event.id));b.querySelector('small').textContent=conferences.find(e=>e.id===b.dataset.conference).city[lang];});
+    labels.forEach((button,i)=>{button.querySelector('strong').textContent=conferences[i].name;button.querySelector('small').textContent=conferences[i].city[lang];button.setAttribute('aria-pressed',String(i===active));});
     const papers=document.querySelector('#conference-papers');papers.replaceChildren();
     try{const doc=await sourceDocument();if(serial!==request)return;for(const id of event.papers){const a=[...doc.querySelectorAll('.publication-list a')].find(a=>a.href.includes(id));if(a)papers.append(a.closest('li').cloneNode(true));}}catch{if(serial!==request)return;const a=document.createElement('a');a.href=lang==='ko'?'ko.html':'index.html';a.textContent='CV ↗';papers.append(a);}
   }
@@ -54,5 +57,6 @@ export function conferenceJourney({scene,sourceDocument,getLanguage,onSelect,red
   document.querySelector('#journey-prev').onclick=()=>select(conferences[(active+conferences.length-1)%conferences.length].id);
   document.querySelector('#journey-next').onclick=()=>select(conferences[(active+1)%conferences.length].id);
   function animate(time){if(!group.visible)return;const t=reducedMotion?1:THREE.MathUtils.clamp((time-started)/4,0,1);const points=routes[active].points;const i=Math.min(99,Math.floor(t*100));plane.position.copy(points[i]).lerp(points[i+1],Math.min(t*100-i,1));const tangent=points[i+1].clone().sub(points[i]).normalize();plane.up.copy(plane.position).normalize();plane.lookAt(plane.position.clone().add(tangent));plane.visible=t<1;routes[active].line.geometry.setDrawRange(0,Math.max(2,Math.floor(t*100)+1));}
-  return {group,pins,ready,render,animate,select,open(){group.visible=true;shell.hidden=false;select(conferences[active].id);},close(){group.visible=false;shell.hidden=true;++request;},get center(){return group.position.clone();}};
+  function updateLabels(camera,width,height,top){if(!group.visible)return;const offsets=[[-157,-67],[15,-52],[16,17]];const view=camera.position.clone().sub(group.position);pins.forEach((pin,i)=>{const world=pin.getWorldPosition(new THREE.Vector3()),normal=world.clone().sub(group.position).normalize(),point=world.clone().project(camera);const x=(point.x*.5+.5)*width,y=(-point.y*.5+.5)*height;const button=labels[i];button.hidden=normal.dot(view)<=radius||point.z>=1||x<0||x>width||y<0||y>height;const [dx,dy]=offsets[i];button.style.left=THREE.MathUtils.clamp(x+dx,6,width-155)+'px';button.style.top=(THREE.MathUtils.clamp(y+dy,6,height-55)+top)+'px';});}
+  return {group,pins,ready,render,animate,updateLabels,select,open(){group.visible=true;shell.hidden=false;select(conferences[active].id);},close(){group.visible=false;shell.hidden=true;++request;},get center(){return group.position.clone();}};
 }

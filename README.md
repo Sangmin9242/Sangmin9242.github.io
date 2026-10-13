@@ -16,6 +16,10 @@ https://sangmin9242.github.io/
 - `spray-robot.js`: CAD model loading, articulated arm motion and spray particles.
 - `assets/robot/fireproofing-robot.glb`: optimized mesh derived from the supplied TESTBED_assy.stp. Original source is unchanged; internal electronics, fasteners and the separate test structure are omitted. Joint motion is an illustrative animation, not a controller simulation.
 - `airplane.js` / `conference-journey.js`: the road airplane, globe, city selection, flight arcs and conference records.
+- `research-office.js`: clickable bookshelf, award certificate, patent drawing cabinet and software laptop, linked to the CV records.
+- `record-viewer.js` / `record-viewer.css`: paginated publication book, award certificates, patent folders and software registration screen, using the English/Korean CV as their data source.
+- `fireproofing-coat.js`: rough gray-white coating accumulated at spray impact positions on the red H-section; pause and reset controls are in the robotics panel. The coating is an illustrative visual, not material-performance or thickness data.
+- `boarding-avatar.js` / `boarding-sequence.js`: avatar walking, boarding steps, entrance door and return reset. Aircraft landing gear folds with bay-door movement after climbing; reduced motion skips the sequence.
 - `assets/conferences/`: landmark photographs and Natural Earth map data, with credits.
 - `vendor/three.module.js`: Three.js 0.160.1 (MIT); license stored alongside it.
 
@@ -29,6 +33,6 @@ The supplied NAS PDF remains read only. The 3D construction scene is an original
 
 ## Preview
 
-Serve this folder over HTTP, for example `python -m http.server 8765`, then open `http://localhost:8765/`. Select Interactive to enter the 3D site. Drag left/right or up/down to orbit; use the mouse wheel, two-finger pinch, or +/− buttons to zoom. The researcher links to the full CV in the selected language. The small airplane on the front road opens a globe with conference cities and related publications. The route arcs are illustrative links from Seoul, not recorded flight itineraries.
+Serve this folder over HTTP, for example `python -m http.server 8765`, then open `http://localhost:8765/`. Select Interactive to enter the 3D site. Drag left/right or up/down to orbit; use the mouse wheel, two-finger pinch, or +/− buttons to zoom. The researcher links to the full CV in the selected language. Research office zooms into the clickable record objects. The airplane starts avatar boarding and runway departure, then opens a globe with clickable conference/year/city labels and related publications. Skip boarding & flight or Escape bypasses the sequence. The route arcs are illustrative links from Seoul, not recorded flight itineraries.
 
 ES modules and CV loading require HTTP. WebGL rendering is optional; the research buttons and full CV remain available without it.
