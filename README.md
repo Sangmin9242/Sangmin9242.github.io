@@ -1,13 +1,26 @@
 # Sangmin Lee — Research & CV
 
-A bilingual academic profile made for GitHub Pages. The content is based on the supplied four-page CV PDF. The source PDF remains untouched.
+Bilingual research homepage with an interactive 3D construction site, built for GitHub Pages.
 
 ## Website
 
-[sangmin9242.github.io](https://sangmin9242.github.io/)
+https://sangmin9242.github.io/
+
+- `index.html`: interactive homepage; switch languages in place.
+- `experience.js`: site scene, interactions, and localized research descriptions.
+- `experience.css`: responsive presentation.
+- `cv.html` / `cv-ko.html`: full English and Korean CVs; also the content sources for homepage panels.
+- `ko.html`: compatibility redirect to the Korean homepage.
+- `vendor/three.module.js`: Three.js 0.160.1 (MIT); license stored alongside it.
 
 ## Update the CV
 
-Edit the publication entries and profile text in both `index.html` and `ko.html`. Each DOI in the publication list links to its publication page. Review all public claims and institution wording before publishing.
+Update both `cv.html` and `cv-ko.html`. The homepage reads their publication, project, patent, software, award, and profile sections, so each language has one source for the complete CV. If adding topic-specific publications, update the research selectors in `experience.js`.
 
-The supplied PDF contains personal details. The page intentionally omits the home address, phone number, and birth date. Korean paper, patent, and project titles have been translated into English; review wording before public release. Duplicated conference papers appear only once. Empty career and certification fields and red editorial reminders in the source are not achievements and are omitted.
+Link paper titles to verified DOIs. Do not display DOI strings or internal editorial notes on the site. Keep applicant/granted status accurate in section headings. Do not publish home addresses, phone numbers, or birth dates.
+
+The supplied NAS PDF remains read only. The 3D construction scene is an original illustration used to navigate the research areas.
+
+## Preview
+
+Serve this folder over HTTP, for example `python -m http.server 8765`, then open `http://localhost:8765/`. ES modules and CV loading require HTTP. WebGL rendering is optional; the research buttons and full CV remain available without it.
