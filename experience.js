@@ -2,10 +2,11 @@ import * as THREE from './vendor/three.module.js';
 import { surface, daylightEnvironment, screenTexture, pbrTextures } from './scene-materials.js';
 import { sprayRobot } from './spray-robot.js?v=20261014-coating';
 import { airplane } from './airplane.js?v=20261014-coating';
-import { conferenceJourney } from './conference-journey.js?v=20261014-coating';
+import { conferenceJourney } from './conference-journey.js?v=20261014-weather';
 import { researchOffice } from './research-office.js';
 import { boardingSequence } from './boarding-sequence.js';
 import { createRecordViewer } from './record-viewer.js';
+import { seoulEnvironment } from './seoul-environment.js';
 
 const text = {
   en: { introLabel:'Construction, in motion', headline:'The site is<br>my laboratory.', intro:'I study how robots see, understand, and work in the built environment.', explore:'Explore the site <span>↓</span>', about:'About', publications:'Publications', robotics:'Construction robotics', vision:'Computer vision', digital:'Digital construction', roboticsTag:'From motion to execution', visionTag:'From pixels to perception', digitalTag:'From data to the field', sceneLabel:'A field of possibilities', rotate:'Rotate view', reset:'Reset view', hint:'Drag to look around · Select a research point', student:"Master’s student · SeoulTech", projects:'R&D projects', ip:'Patents & software', awards:'Awards', contact:'Get in touch ↗', fallback:'Explore the research areas below.', kind:'Research', related:'Related publications', all:'All publications', cv:'Full CV', loading:'Loading…', loadError:'Please open the full CV to view these records.', roboticsDescription:'Robotic fireproofing spray connects motion planning, spray quality, and the realities of a construction site. My work explores work-area recognition and simulation for robotic execution.', visionDescription:'A camera sees pixels. A robot needs surfaces it can work on. My research uses RGB and RGB-D images to recognize steel members and classify work surfaces for fireproofing spray.', digitalDescription:'From construction inspection to human–robot collaboration, I explore how field data and digital models can support automated construction processes.' },
@@ -22,7 +23,7 @@ let journeyOpen = false;
 let departing = false;
 text.en.conferences='International conferences';text.ko.conferences='해외학회';text.en.skipFlight='Skip boarding & flight';text.ko.skipFlight='탑승·이륙 건너뛰기';Object.assign(text.en,{pauseSpray:'Pause spray',resumeSpray:'Start spray',resetCoat:'Reset coating'});Object.assign(text.ko,{pauseSpray:'분사 일시정지',resumeSpray:'분사 시작',resetCoat:'코팅 초기화'});
 Object.assign(text.en,{office:'Research office',patents:'Patent applications',software:'Software registration'});Object.assign(text.ko,{office:'연구실 둘러보기',patents:'특허 출원',software:'소프트웨어 등록'});
-text.en.hint='Drag to rotate in any direction · Scroll or pinch to zoom';text.ko.hint='드래그로 좌우·상하 회전 · 휠 또는 두 손가락으로 확대·축소';
+text.en.hint='Drag to rotate · Right-drag or two-finger drag to pan · Scroll or pinch to zoom';text.ko.hint='드래그로 회전 · 우클릭 또는 두 손가락 드래그로 이동 · 휠 또는 핀치로 확대·축소';
 const panel = document.querySelector('#detail-panel');
 const panelBody = document.querySelector('#panel-body');
 const docs = new Map();
@@ -45,6 +46,7 @@ function setLanguage(next) {
   if (currentPanel) renderPanel(currentPanel);
   if (journeyOpen) sceneAPI?.refreshJourney();
   recordViewer?.refresh();
+  sceneAPI?.refreshEnvironment();
 }
 async function sourceDocument() {
   if (!docs.has(lang)) {
@@ -144,7 +146,7 @@ function createScene() {
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.75)); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05; container.append(renderer.domElement);
   const environment=daylightEnvironment(renderer);scene.environment=environment.texture;
   const camera=new THREE.PerspectiveCamera(37,1,.1,150);
-  scene.add(new THREE.HemisphereLight(0xd7dde1,0x60594e,.85));
+  const hemisphere=new THREE.HemisphereLight(0xd7dde1,0x60594e,.85);scene.add(hemisphere);
   const sun=new THREE.DirectionalLight(0xffecd2,3.5); sun.position.set(-12,20,8); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048); Object.assign(sun.shadow.camera,{left:-25,right:25,top:25,bottom:-25,near:1,far:70}); sun.shadow.bias=-.0002;sun.shadow.normalBias=.025;sun.shadow.radius=3; scene.add(sun);
   const rim=new THREE.DirectionalLight(0xb8cfdf,.7); rim.position.set(14,10,-10); scene.add(rim);
   const world=new THREE.Group(); scene.add(world);
@@ -247,6 +249,7 @@ function createScene() {
   for(const x of [-.215,.215]){ellipsoid(avatar,[.075,.12,.08],[x,1.12,0],0x354957);beam(avatar,[x,1.1,-.01],[x*.9,.91,-.25],.053,0x354957);beam(avatar,[x*.9,.91,-.25],[x*.6,.9,-.58],.045,0x354957);ellipsoid(avatar,[.044,.023,.069],[x*.6,.912,-.59],0xc2a38c);}
   const workLight=new THREE.PointLight(0xffe3b7,1.1,5);workLight.position.set(-.3,2,-.3);researcher.add(workLight);
   const officeObjects=researchOffice({parent:researcher,box,screenTexture});
+  const seoulLive=seoulEnvironment({world,scene,renderer,sun,rim,hemisphere,researcher,box,getLanguage:()=>lang,reducedMotion:reduceMotion,onCalendar:calendarFocus});
   // A modest airliner on the road in front of the field office.
   const parkedPlane=airplane();parkedPlane.position.set(-7.5,-.06,11.5);parkedPlane.rotation.y=Math.PI/2;parkedPlane.scale.setScalar(1.35);world.add(parkedPlane);
   const boarding=boardingSequence({world,researcher,avatar,plane:parkedPlane,box,beam});
@@ -273,20 +276,23 @@ function createScene() {
   const lookAt=new THREE.Vector3(-4,4,0),targetLook=new THREE.Vector3(-4,4,0);
   const journey=conferenceJourney({scene,sourceDocument,getLanguage:()=>lang,reducedMotion:reduceMotion,onSelect(event){const desired=THREE.MathUtils.degToRad(event.lon);targetAngle+=Math.atan2(Math.sin(desired-targetAngle),Math.cos(desired-targetAngle));targetPitch=THREE.MathUtils.degToRad(event.lat)*.8;targetDistance=mobile?12:13;targetLook.copy(journey.center);}});
   function reset(){officeMode=false;if(journeyOpen){journey.select(document.querySelector('#journey-view').dataset.conference);autoRotate=false;}else{targetAngle=.61;targetPitch=.52;targetDistance=mobile?45:38;targetLook.set(mobile?0:-4, mobile?5:4,0);autoRotate=false;}document.querySelector('#rotate').setAttribute('aria-pressed','false');}
-  function zoom(factor){targetDistance=THREE.MathUtils.clamp(targetDistance*factor,journeyOpen?8:9,journeyOpen?22:65);}
+  function zoom(factor){targetDistance=THREE.MathUtils.clamp(targetDistance*factor,journeyOpen?8:officeMode?3:9,journeyOpen?22:65);}
+  function calendarFocus(){officeMode=true;targetAngle=.12;targetPitch=.12;targetDistance=4.8;targetLook.copy(seoulLive.calendarPosition());autoRotate=false;}
   function focus(kind){const point=hotspotAnchors[kind]||new THREE.Vector3(1,5,0);officeMode=false;const room=!!officeObjects[kind];targetAngle=room?.12:.5;targetPitch=room?.28:.4;targetDistance=room?10:kind==='robotics'?11:kind==='vision'?23:31;targetLook.copy(point).add(new THREE.Vector3(room?3:kind==='robotics'?3.5:9,0,0));autoRotate=false;}
   function finishDeparture(){if(!departure)return;const done=departure.done;departure=null;boarding.animate(boarding.duration);skyFade.style.transition='none';skyFade.style.opacity='1';done();skyFade.getBoundingClientRect();skyFade.style.transition='opacity .8s ease-out';skyFade.style.opacity='0';}
   function office(){officeMode=true;targetAngle=.12;targetPitch=.32;targetDistance=mobile?11:10;targetLook.set(-7.8,1.35,5.25);autoRotate=false;}
   function resize(){width=container.clientWidth;height=container.clientHeight;mobile=width<=600;renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix();reset();if(mobile){lookAt.copy(targetLook);distance=targetDistance;}if(currentPanel)focus(currentPanel);}
   const observer=new ResizeObserver(resize);observer.observe(container);
   const pointers=new Map();let pinchDistance=0,dragTravel=0;
-  renderer.domElement.addEventListener('pointerdown',event=>{if(departing||event.button>0)return;drag=true;if(!pointers.size){moved=false;dragTravel=0;}pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});if(pointers.size===2){const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);moved=true;}renderer.domElement.setPointerCapture(event.pointerId);});
-  renderer.domElement.addEventListener('pointermove',event=>{const last=pointers.get(event.pointerId);if(!last)return;const dx=event.clientX-last.x,dy=event.clientY-last.y;pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});dragTravel+=Math.hypot(dx,dy);if(dragTravel>5)moved=true;if(pointers.size===2){const [a,b]=[...pointers.values()],next=Math.hypot(a.x-b.x,a.y-b.y);if(next>0&&pinchDistance>0)zoom(pinchDistance/next);pinchDistance=next;}else{targetAngle-=dx*.005;targetPitch=THREE.MathUtils.clamp(targetPitch+dy*.005,-.45,1.48);}});
+  function pan(dx,dy){const scale=2*targetDistance*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))/Math.max(height,1);const right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion);targetLook.addScaledVector(right,-dx*scale).addScaledVector(up,dy*scale);}
+  renderer.domElement.addEventListener('contextmenu',event=>event.preventDefault());
+  renderer.domElement.addEventListener('pointerdown',event=>{if(departing||event.button>2)return;drag=true;if(!pointers.size){moved=false;dragTravel=0;}pointers.set(event.pointerId,{x:event.clientX,y:event.clientY,pan:event.button===2||event.button===1});if(pointers.size===2){const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);moved=true;}renderer.domElement.setPointerCapture(event.pointerId);});
+  renderer.domElement.addEventListener('pointermove',event=>{const last=pointers.get(event.pointerId);if(!last)return;const before=[...pointers.values()];const dx=event.clientX-last.x,dy=event.clientY-last.y;pointers.set(event.pointerId,{x:event.clientX,y:event.clientY,pan:last.pan});dragTravel+=Math.hypot(dx,dy);if(dragTravel>5)moved=true;if(pointers.size===2){const [a,b]=[...pointers.values()],next=Math.hypot(a.x-b.x,a.y-b.y);pan((a.x+b.x-before[0].x-before[1].x)/2,(a.y+b.y-before[0].y-before[1].y)/2);if(next>0&&pinchDistance>0)zoom(pinchDistance/next);pinchDistance=next;}else if(last.pan){pan(dx,dy);}else{targetAngle-=dx*.005;targetPitch=THREE.MathUtils.clamp(targetPitch+dy*.005,-.45,1.48);}});
   function release(event){pointers.delete(event.pointerId);drag=pointers.size>0;pinchDistance=0;if(renderer.domElement.hasPointerCapture(event.pointerId))renderer.domElement.releasePointerCapture(event.pointerId);}
   renderer.domElement.addEventListener('pointerup',release);renderer.domElement.addEventListener('pointercancel',release);
   document.querySelector('.world').addEventListener('wheel',event=>{if(departing){event.preventDefault();return;}if(event.target.closest('.journey-card,.research-controls,.journey-stops,.hero-intro'))return;event.preventDefault();zoom(Math.exp(THREE.MathUtils.clamp(event.deltaY,-300,300)*.0015));},{passive:false});
   const raycaster=new THREE.Raycaster();const pointer=new THREE.Vector2();
-  renderer.domElement.addEventListener('click',event=>{if(departing||moved||currentPanel)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);if(journeyOpen){const hit=raycaster.intersectObjects(journey.pins)[0];if(hit)journey.select(hit.object.userData.event);return;}const hits=[];for(const [group,kind] of [[researcher,'avatar'],[parkedPlane,'airplane'],[robot,'robotics'],[sensor,'vision'],[building,'digital'],[crane,'digital']]){const hit=raycaster.intersectObject(group,true)[0];if(hit){let choice=kind;if(kind==='avatar'){for(let n=hit.object;n&&n!==researcher;n=n.parent){if(n.userData.panel){choice=n.userData.panel;break;}}}hits.push({distance:hit.distance,kind:choice});}}hits.sort((a,b)=>a.distance-b.distance);if(hits[0]?.kind==='avatar'){location.assign(document.querySelector('#avatar-link').href);}else if(hits[0]?.kind==='airplane')enterJourney();else if(hits.length){if(officeObjects[hits[0].kind])openArchive(hits[0].kind);else openPanel(hits[0].kind);}});
+  renderer.domElement.addEventListener('click',event=>{if(departing||moved||currentPanel)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);if(journeyOpen){const hit=raycaster.intersectObjects(journey.pins)[0];if(hit)journey.select(hit.object.userData.event);return;}const hits=[];for(const [group,kind] of [[researcher,'avatar'],[parkedPlane,'airplane'],[robot,'robotics'],[sensor,'vision'],[building,'digital'],[crane,'digital']]){const hit=raycaster.intersectObject(group,true)[0];if(hit){let choice=kind;if(kind==='avatar'){for(let n=hit.object;n&&n!==researcher;n=n.parent){if(n.userData.calendar){choice='calendar';break;}if(n.userData.panel){choice=n.userData.panel;break;}}}hits.push({distance:hit.distance,kind:choice});}}hits.sort((a,b)=>a.distance-b.distance);if(hits[0]?.kind==='avatar'){location.assign(document.querySelector('#avatar-link').href);}else if(hits[0]?.kind==='calendar')calendarFocus();else if(hits[0]?.kind==='airplane')enterJourney();else if(hits.length){if(officeObjects[hits[0].kind])openArchive(hits[0].kind);else openPanel(hits[0].kind);}});
   let previous=performance.now();
   function animate(now){const delta=Math.min((now-previous)/1000,.05);previous=now;const t=now/1000;
     if(autoRotate&&!drag&&!currentPanel)targetAngle+=delta*.1;
@@ -298,7 +304,8 @@ function createScene() {
     recognition.visible=currentPanel!=='robotics';
     sprayer.animate(t);
     journey.animate(t);
-    if(!departure)container.dataset.view=journeyOpen?'journey':'site';container.dataset.orbitPitch=String(pitch);container.dataset.orbitAngle=String(angle);container.dataset.orbitDistance=String(distance);
+    seoulLive.animate(t);
+    if(!departure)container.dataset.view=journeyOpen?'journey':'site';container.dataset.orbitPitch=String(pitch);container.dataset.orbitAngle=String(angle);container.dataset.orbitDistance=String(distance);container.dataset.orbitTarget=JSON.stringify(lookAt.toArray());
     if(robot.userData.loaded){container.dataset.coatingCoverage=String(robot.userData.coatingCoverage||0);container.dataset.robotJoints=robot.userData.joints;container.dataset.robotNozzle=String(robot.userData.nozzle);container.dataset.robotSpraying=String(robot.userData.spraying);container.dataset.robotMotion=String(robot.userData.animationTime||0);container.dataset.sprayDistance=String(robot.userData.sprayDistance||0);container.dataset.nozzlePosition=JSON.stringify(robot.userData.nozzlePosition||[]);}
     renderer.render(scene,camera);
     journey.updateLabels(camera,width,height,container.offsetTop);
@@ -306,6 +313,6 @@ function createScene() {
   }
   renderer.setAnimationLoop(animate);resize();lookAt.copy(targetLook);
   renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();document.querySelector('.scene-fallback').hidden=false;document.querySelector('#hotspots').hidden=true;});
-  return {reset,focus,zoom,office,finishDeparture,sprayRunning:sprayer.isRunning,sprayToggle:sprayer.toggle,resetCoating:sprayer.resetCoating,isOffice(){return officeMode;},rotate(value){autoRotate=value;},depart(done){autoRotate=false;if(reduceMotion){done();return;}boarding.start();skyFade.style.transition='none';departure={started:performance.now()/1000,camera:camera.position.clone(),look:lookAt.clone(),done};},refreshJourney(){journey.render();},enterJourney(){world.visible=false;scene.fog=null;journey.open();angle=targetAngle;pitch=targetPitch;distance=targetDistance;lookAt.copy(targetLook);},exitJourney(){journey.close();boarding.reset();parkedPlane.position.set(-7.5,-.06,11.5);parkedPlane.rotation.set(0,Math.PI/2,0);parkedPlane.userData.setGear(0);world.visible=true;scene.fog=new THREE.FogExp2(0x233744,.015);reset();}};
+  return {reset,focus,zoom,office,finishDeparture,refreshEnvironment:seoulLive.refresh,sprayRunning:sprayer.isRunning,sprayToggle:sprayer.toggle,resetCoating:sprayer.resetCoating,isOffice(){return officeMode;},rotate(value){autoRotate=value;},depart(done){autoRotate=false;if(reduceMotion){done();return;}boarding.start();skyFade.style.transition='none';departure={started:performance.now()/1000,camera:camera.position.clone(),look:lookAt.clone(),done};},refreshJourney(){journey.render();},enterJourney(){world.visible=false;scene.fog=null;journey.open();angle=targetAngle;pitch=targetPitch;distance=targetDistance;lookAt.copy(targetLook);},exitJourney(){journey.close();boarding.reset();parkedPlane.position.set(-7.5,-.06,11.5);parkedPlane.rotation.set(0,Math.PI/2,0);parkedPlane.userData.setGear(0);world.visible=true;scene.fog=new THREE.FogExp2(0x233744,.015);reset();}};
 }
 try {sceneAPI=createScene();}catch(error){console.warn('3D scene unavailable',error);document.querySelector('.scene-fallback').hidden=false;document.querySelector('#hotspots').hidden=true;}
