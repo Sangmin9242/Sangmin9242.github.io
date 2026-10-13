@@ -14,6 +14,7 @@ let lastFocused = null;
 let panelRequest = 0;
 let sceneAPI = null;
 let journeyOpen = false;
+let departing = false;
 text.en.conferences='International conferences';text.ko.conferences='해외학회';
 text.en.hint='Drag to rotate in any direction · Scroll or pinch to zoom';text.ko.hint='드래그로 좌우·상하 회전 · 휠 또는 두 손가락으로 확대·축소';
 const panel = document.querySelector('#detail-panel');
@@ -108,7 +109,7 @@ document.querySelector('#explore').onclick=()=>openPanel('robotics');
 document.querySelector('#reset').onclick=()=>{ closePanel(); sceneAPI?.reset(); };
 document.querySelector('#zoom-in').onclick=()=>sceneAPI?.zoom(.82);
 document.querySelector('#zoom-out').onclick=()=>sceneAPI?.zoom(1.22);
-function enterJourney(){closePanel();journeyOpen=true;document.body.classList.add('journey-open');sceneAPI?.enterJourney();document.querySelector('#journey-back').focus({preventScroll:true});}
+function enterJourney(){if(departing||journeyOpen)return;closePanel();departing=true;document.body.classList.add('departing');document.querySelector('.hotspots').inert=true;document.querySelector('.research-controls').inert=true;sceneAPI?.depart(()=>{departing=false;document.body.classList.remove('departing');document.querySelector('.hotspots').inert=false;document.querySelector('.research-controls').inert=false;journeyOpen=true;document.body.classList.add('journey-open');sceneAPI.enterJourney();document.querySelector('#journey-back').focus({preventScroll:true});});}
 function exitJourney(){journeyOpen=false;document.body.classList.remove('journey-open');sceneAPI?.exitJourney();document.querySelector('#airplane-link').focus({preventScroll:true});}
 document.querySelector('#airplane-link').onclick=enterJourney;
 document.querySelector('#journey-back').onclick=exitJourney;
@@ -227,6 +228,8 @@ function createScene() {
   const workLight=new THREE.PointLight(0xffe3b7,1.1,5);workLight.position.set(-.3,2,-.3);researcher.add(workLight);
   // A modest airliner on the road in front of the field office.
   const parkedPlane=airplane();parkedPlane.position.set(-7.5,0,11.5);parkedPlane.rotation.y=Math.PI/2;parkedPlane.scale.setScalar(.9);world.add(parkedPlane);
+  const skyFade=document.createElement('div');skyFade.className='departure-sky';document.querySelector('.world').append(skyFade);
+  let departure=null;
   // Material stacks, site fencing, and neighboring apartment facades.
   for(let i=0;i<4;i++)box(world,[2,.12,.28],[-7.7,.16+i*.13,1.8],palette.steel);
   for(let i=0;i<4;i++)box(world,[.75,.35,.75],[7.7,.2+i*.36,-5],0x83949b);
@@ -252,29 +255,30 @@ function createScene() {
   function resize(){width=container.clientWidth;height=container.clientHeight;mobile=width<=600;renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix();reset();if(mobile){lookAt.copy(targetLook);distance=targetDistance;}if(currentPanel)focus(currentPanel);}
   const observer=new ResizeObserver(resize);observer.observe(container);
   const pointers=new Map();let pinchDistance=0,dragTravel=0;
-  renderer.domElement.addEventListener('pointerdown',event=>{if(event.button>0)return;drag=true;if(!pointers.size){moved=false;dragTravel=0;}pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});if(pointers.size===2){const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);moved=true;}renderer.domElement.setPointerCapture(event.pointerId);});
+  renderer.domElement.addEventListener('pointerdown',event=>{if(departing||event.button>0)return;drag=true;if(!pointers.size){moved=false;dragTravel=0;}pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});if(pointers.size===2){const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);moved=true;}renderer.domElement.setPointerCapture(event.pointerId);});
   renderer.domElement.addEventListener('pointermove',event=>{const last=pointers.get(event.pointerId);if(!last)return;const dx=event.clientX-last.x,dy=event.clientY-last.y;pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});dragTravel+=Math.hypot(dx,dy);if(dragTravel>5)moved=true;if(pointers.size===2){const [a,b]=[...pointers.values()],next=Math.hypot(a.x-b.x,a.y-b.y);if(next>0&&pinchDistance>0)zoom(pinchDistance/next);pinchDistance=next;}else{targetAngle-=dx*.005;targetPitch=THREE.MathUtils.clamp(targetPitch+dy*.005,-.45,1.48);}});
   function release(event){pointers.delete(event.pointerId);drag=pointers.size>0;pinchDistance=0;if(renderer.domElement.hasPointerCapture(event.pointerId))renderer.domElement.releasePointerCapture(event.pointerId);}
   renderer.domElement.addEventListener('pointerup',release);renderer.domElement.addEventListener('pointercancel',release);
-  document.querySelector('.world').addEventListener('wheel',event=>{if(event.target.closest('.journey-card,.research-controls,.journey-stops,.hero-intro'))return;event.preventDefault();zoom(Math.exp(THREE.MathUtils.clamp(event.deltaY,-300,300)*.0015));},{passive:false});
+  document.querySelector('.world').addEventListener('wheel',event=>{if(departing){event.preventDefault();return;}if(event.target.closest('.journey-card,.research-controls,.journey-stops,.hero-intro'))return;event.preventDefault();zoom(Math.exp(THREE.MathUtils.clamp(event.deltaY,-300,300)*.0015));},{passive:false});
   const raycaster=new THREE.Raycaster();const pointer=new THREE.Vector2();
-  renderer.domElement.addEventListener('click',event=>{if(moved||currentPanel)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);if(journeyOpen){const hit=raycaster.intersectObjects(journey.pins)[0];if(hit)journey.select(hit.object.userData.event);return;}const hits=[];for(const [group,kind] of [[researcher,'avatar'],[parkedPlane,'airplane'],[robot,'robotics'],[sensor,'vision'],[building,'digital'],[crane,'digital']]){const hit=raycaster.intersectObject(group,true)[0];if(hit)hits.push({distance:hit.distance,kind});}hits.sort((a,b)=>a.distance-b.distance);if(hits[0]?.kind==='avatar'){location.assign(document.querySelector('#avatar-link').href);}else if(hits[0]?.kind==='airplane')enterJourney();else if(hits.length)openPanel(hits[0].kind);});
+  renderer.domElement.addEventListener('click',event=>{if(departing||moved||currentPanel)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);if(journeyOpen){const hit=raycaster.intersectObjects(journey.pins)[0];if(hit)journey.select(hit.object.userData.event);return;}const hits=[];for(const [group,kind] of [[researcher,'avatar'],[parkedPlane,'airplane'],[robot,'robotics'],[sensor,'vision'],[building,'digital'],[crane,'digital']]){const hit=raycaster.intersectObject(group,true)[0];if(hit)hits.push({distance:hit.distance,kind});}hits.sort((a,b)=>a.distance-b.distance);if(hits[0]?.kind==='avatar'){location.assign(document.querySelector('#avatar-link').href);}else if(hits[0]?.kind==='airplane')enterJourney();else if(hits.length)openPanel(hits[0].kind);});
   let previous=performance.now();
   function animate(now){const delta=Math.min((now-previous)/1000,.05);previous=now;const t=now/1000;
     if(autoRotate&&!drag&&!currentPanel)targetAngle+=delta*.1;
     const factor=reduceMotion?1:1-Math.exp(-delta*4.5);angle=THREE.MathUtils.lerp(angle,targetAngle,factor);pitch=THREE.MathUtils.lerp(pitch,targetPitch,factor);distance=THREE.MathUtils.lerp(distance,targetDistance,factor);lookAt.lerp(targetLook,factor);
     camera.position.set(lookAt.x+Math.sin(angle)*Math.cos(pitch)*distance,lookAt.y+Math.sin(pitch)*distance,lookAt.z+Math.cos(angle)*Math.cos(pitch)*distance);camera.lookAt(lookAt);
     if(journeyOpen&&!mobile)camera.setViewOffset(width,height,width*.15,0,width,height);else if(mobile&&!journeyOpen)camera.setViewOffset(width,height,0,-height*.015,width,height);else camera.clearViewOffset();
+    if(departure){const elapsed=t-departure.started;const roll=THREE.MathUtils.clamp(elapsed/2.4,0,1);const climb=THREE.MathUtils.clamp((elapsed-1.1)/2.4,0,1);parkedPlane.position.set(-7.5+15*roll*roll,10*climb*climb,11.5-3*climb);parkedPlane.rotation.set(-climb*.3,Math.PI/2,0,'YXZ');const following=parkedPlane.position.clone().add(new THREE.Vector3(-5,3.3,6));const blend=THREE.MathUtils.smoothstep(elapsed,0,1);camera.position.copy(departure.camera).lerp(following,blend);camera.lookAt(departure.look.clone().lerp(parkedPlane.position.clone().add(new THREE.Vector3(1,.7,0)),blend));camera.clearViewOffset();skyFade.style.opacity=String(THREE.MathUtils.smoothstep(elapsed,2.7,3.5));container.dataset.view='takeoff';container.dataset.planeAltitude=String(parkedPlane.position.y);if(elapsed>=3.5){const done=departure.done;departure=null;done();skyFade.getBoundingClientRect();skyFade.style.transition='opacity .8s ease-out';skyFade.style.opacity='0';}}
     if(!reduceMotion){scan.position.y=.6+(Math.sin(t*.7)*.5+.5)*2.1;trail.position.copy(path.getPointAt((t*.035)%1));hoist.position.y=Math.sin(t*.3)*.18;}
     sprayer.animate(t);
     journey.animate(t);
-    container.dataset.view=journeyOpen?'journey':'site';container.dataset.orbitPitch=String(pitch);container.dataset.orbitAngle=String(angle);container.dataset.orbitDistance=String(distance);
+    if(!departure)container.dataset.view=journeyOpen?'journey':'site';container.dataset.orbitPitch=String(pitch);container.dataset.orbitAngle=String(angle);container.dataset.orbitDistance=String(distance);
     if(robot.userData.loaded){container.dataset.robotJoints=robot.userData.joints;container.dataset.robotNozzle=String(robot.userData.nozzle);container.dataset.robotSpraying=String(robot.userData.spraying);container.dataset.robotMotion=String(robot.userData.animationTime||0);container.dataset.sprayDistance=String(robot.userData.sprayDistance||0);container.dataset.nozzlePosition=JSON.stringify(robot.userData.nozzlePosition||[]);}
     renderer.render(scene,camera);
     hotspotButtons.forEach(button=>{const point=hotspotAnchors[button.dataset.research||button.dataset.sceneKey].clone().project(camera);const x=(point.x*.5+.5)*width,y=(-point.y*.5+.5)*height;const valid=point.z<1&&x>0&&x<width&&y>0&&y<height;button.style.visibility=valid?'visible':'hidden';const labelWidth=button.offsetWidth||150;button.style.transform=`translate(${Math.min(Math.max(x-10,8),width-labelWidth-8)}px,${y+container.offsetTop-10}px)`;});
   }
   renderer.setAnimationLoop(animate);resize();lookAt.copy(targetLook);
   renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();document.querySelector('.scene-fallback').hidden=false;document.querySelector('#hotspots').hidden=true;});
-  return {reset,focus,zoom,rotate(value){autoRotate=value;},refreshJourney(){journey.render();},enterJourney(){world.visible=false;scene.fog=null;journey.open();},exitJourney(){journey.close();world.visible=true;scene.fog=new THREE.FogExp2(0x233744,.015);reset();}};
+  return {reset,focus,zoom,rotate(value){autoRotate=value;},depart(done){autoRotate=false;if(reduceMotion){done();return;}skyFade.style.transition='none';departure={started:performance.now()/1000,camera:camera.position.clone(),look:lookAt.clone(),done};},refreshJourney(){journey.render();},enterJourney(){world.visible=false;scene.fog=null;journey.open();angle=targetAngle;pitch=targetPitch;distance=targetDistance;lookAt.copy(targetLook);},exitJourney(){journey.close();parkedPlane.position.set(-7.5,0,11.5);parkedPlane.rotation.set(0,Math.PI/2,0);world.visible=true;scene.fog=new THREE.FogExp2(0x233744,.015);reset();}};
 }
 try {sceneAPI=createScene();}catch(error){console.warn('3D scene unavailable',error);document.querySelector('.scene-fallback').hidden=false;document.querySelector('#hotspots').hidden=true;}
