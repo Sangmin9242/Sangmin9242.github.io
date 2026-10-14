@@ -1,5 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import { sitePet } from './site-pet.js?v=20261014-pet';
+import { sitePet } from './site-pet.js?v=20261015-life';
+import { carLife } from './car-life.js?v=20261015-life';
 import { surface, daylightEnvironment, screenTexture, pbrTextures } from './scene-materials.js';
 import { sprayRobot } from './spray-robot.js?v=20261014-coating';
 import { airplane } from './airplane.js?v=20261014-strut';
@@ -9,7 +10,7 @@ import { trainBoarding } from './train-boarding.js';
 import { conferenceJourney } from './conference-journey.js?v=20261014-easy';
 import { hobbyWorld } from './hobby-world.js?v=20261014-easy';
 import { sportsPlay } from './sports-play.js?v=20261014-easy';
-import { parkingCars } from './parking-cars.js?v=20261014-easy';
+import { parkingCars } from './parking-cars.js?v=20261015-life';
 import { researchOffice } from './research-office.js';
 import { responsiveLabels } from './responsive-labels.js';
 import { boardingAvatar } from './boarding-avatar.js?v=20261014-easy';
@@ -29,14 +30,14 @@ let panelReturnOffice = false;
 let panelRequest = 0;
 let sceneAPI = null;
 let playControls=null;
-let petFocus=false;
+let petFocus=false,carFocus=false,carFollowing=false;
 let recordViewer = null;
 let journeyOpen = false;let journeyMode="overseas";
 let departing = false;let hobbyFocus=null;
 text.en.domestic='Domestic conferences';text.ko.domestic='국내학회';text.en.conferences='International conferences';text.ko.conferences='해외학회';text.en.skipFlight='Skip boarding & journey';text.ko.skipFlight='탑승·이동 건너뛰기';Object.assign(text.en,{pauseSpray:'Pause spray',resumeSpray:'Start spray',resetCoat:'Reset coating'});Object.assign(text.ko,{pauseSpray:'분사 일시정지',resumeSpray:'분사 시작',resetCoat:'코팅 초기화'});
 Object.assign(text.en,{football:'Football',bowling:'Bowling',hobbies:'Beyond the laboratory',hobbyDescription:'Away from research, I enjoy football and bowling.',backToSite:'Back to the site'});Object.assign(text.ko,{football:'축구',bowling:'볼링',hobbies:'연구 밖의 일상',hobbyDescription:'연구 외에는 축구와 볼링을 즐깁니다.',backToSite:'현장으로 돌아가기'});
 Object.assign(text.en,{office:'Research office',patents:'Patent applications',software:'Software registration'});Object.assign(text.ko,{office:'연구실 둘러보기',patents:'특허 출원',software:'소프트웨어 등록'});
-Object.assign(text.en,{pet:'My maltipoo'});Object.assign(text.ko,{pet:'말티푸 만나기'});
+Object.assign(text.en,{pet:'My maltipoo',parking:'Parked cars'});Object.assign(text.ko,{pet:'말티푸 만나기',parking:'차량 둘러보기'});
 text.en.hint='Drag to rotate · Right-drag or two-finger drag to pan · Scroll or pinch to zoom';text.ko.hint='드래그로 회전 · 우클릭 또는 두 손가락 드래그로 이동 · 휠 또는 핀치로 확대·축소';
 const panel = document.querySelector('#detail-panel');
 const panelBody = document.querySelector('#panel-body');
@@ -60,7 +61,9 @@ function setLanguage(next) {
   document.title = lang === 'ko' ? '이상민 — 현장에서 시작하는 연구' : 'Sangmin Lee — Construction, in motion';
   if(hobbyFocus)renderHobby();
   playControls?.refresh();
+  document.querySelector('#pet-photo').alt=lang==='ko'?'집에서 쉬는 반려견 말티푸의 실제 사진':'My apricot maltipoo at home';
   sceneAPI?.refreshPet();
+  sceneAPI?.refreshCars();
   if (currentPanel) renderPanel(currentPanel);
   if (journeyOpen) sceneAPI?.refreshJourney();
   recordViewer?.refresh();
@@ -120,7 +123,7 @@ async function renderPanel(kind) {
   }
 }
 function openPanel(kind) {
-  if(departing)return;closePet(false);closeHobby(false);
+  if(departing)return;closeCar(false);closePet(false);closeHobby(false);
   if(journeyOpen) exitJourney();
   if (!currentPanel){lastFocused=document.activeElement;panelReturnOffice=sceneAPI?.isOffice()||false;}
   currentPanel=kind; panel.hidden=false; document.body.classList.add('panel-open');
@@ -130,11 +133,11 @@ function openPanel(kind) {
 }
 function configurePanelInteraction(){if(recordViewer?.isOpen()){document.querySelector('main').inert=true;document.querySelector('header').inert=true;return;}const open=!!currentPanel,modal=innerWidth<=600&&open;panel.setAttribute('aria-modal',String(modal));document.querySelector('main').inert=modal;document.querySelector('header').inert=modal;document.querySelector('.hero-intro').inert=open;document.querySelector('.hotspots').inert=open;document.querySelector('.masthead nav').inert=open;const edge=innerWidth-panel.offsetWidth;document.querySelectorAll('.index-bar button,.index-bar a').forEach(node=>{node.inert=open&&node.getBoundingClientRect().right>edge;});}
 window.addEventListener('resize',configurePanelInteraction);
-function closePanel() { const room=panelReturnOffice;panelReturnOffice=false;currentPanel=null; ++panelRequest; panel.hidden=true; document.body.classList.remove('panel-open');configurePanelInteraction();document.querySelectorAll('.research-controls button,.panel-research-nav button').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-pressed','false');});if(room)sceneAPI?.office();else sceneAPI?.reset();requestAnimationFrame(()=>{if(departing||journeyOpen||currentPanel||hobbyFocus||petFocus||recordViewer?.isOpen())return;const target=lastFocused&&getComputedStyle(lastFocused).visibility!=='hidden'?lastFocused:room?document.querySelector('#office-explore'):null;target?.focus({preventScroll:true});}); }
-function openArchive(kind){if(departing)return;closePet(false);closeHobby(false);if(currentPanel)closePanel();sceneAPI?.office();recordViewer.open(kind);}
+function closePanel() { const room=panelReturnOffice;panelReturnOffice=false;currentPanel=null; ++panelRequest; panel.hidden=true; document.body.classList.remove('panel-open');configurePanelInteraction();document.querySelectorAll('.research-controls button,.panel-research-nav button').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-pressed','false');});if(room)sceneAPI?.office();else sceneAPI?.reset();requestAnimationFrame(()=>{if(departing||journeyOpen||currentPanel||hobbyFocus||petFocus||carFocus||recordViewer?.isOpen())return;const target=lastFocused&&getComputedStyle(lastFocused).visibility!=='hidden'?lastFocused:room?document.querySelector('#office-explore'):null;target?.focus({preventScroll:true});}); }
+function openArchive(kind){if(departing)return;closeCar(false);closePet(false);closeHobby(false);if(currentPanel)closePanel();sceneAPI?.office();recordViewer.open(kind);}
 
 function renderHobby(){document.querySelector('#hobby-scoreboard').hidden=hobbyFocus!=='bowling';document.querySelector('#bowling-score-title').textContent=lang==='ko'?'친선 게임':'Friendly game';document.querySelector('#bowling-score-table thead th').textContent=lang==='ko'?'플레이어':'Player';document.querySelector('#hobby-title').textContent=text[lang][hobbyFocus||'hobbies'];document.querySelector('#hobby-description').textContent=lang==='ko'?'아바타를 누르거나 아래 버튼을 선택하면 직접 플레이할 수 있습니다.':'Select my avatar or the button below to play.';document.querySelectorAll('[data-hobby]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.hobby===hobbyFocus)));}
-function openHobby(kind){if(departing)return;closePet(false);playControls?.stop();if(journeyOpen)exitJourney();if(currentPanel)closePanel();hobbyFocus=kind;document.body.classList.add('hobby-open');document.querySelector('#hobby-caption').hidden=false;renderHobby();sceneAPI?.hobby(kind);document.querySelector('#hobby-close').focus({preventScroll:true});}
+function openHobby(kind){if(departing)return;closeCar(false);closePet(false);playControls?.stop();if(journeyOpen)exitJourney();if(currentPanel)closePanel();hobbyFocus=kind;document.body.classList.add('hobby-open');document.querySelector('#hobby-caption').hidden=false;renderHobby();sceneAPI?.hobby(kind);document.querySelector('#hobby-close').focus({preventScroll:true});}
 function closeHobby(restore=true){playControls?.stop();if(!hobbyFocus)return;hobbyFocus=null;document.body.classList.remove('hobby-open');document.querySelector('#hobby-caption').hidden=true;sceneAPI?.hobby('auto');document.querySelectorAll('[data-hobby]').forEach(b=>b.setAttribute('aria-pressed','false'));if(restore)sceneAPI?.reset();}
 document.querySelectorAll('[data-hobby]').forEach(b=>b.onclick=()=>openHobby(b.dataset.hobby));document.querySelector('#hobby-close').onclick=()=>{const kind=hobbyFocus;closeHobby();document.querySelector('#'+kind+'-access').focus({preventScroll:true});};
 
@@ -144,17 +147,18 @@ document.querySelector('#language').onclick=()=>setLanguage(lang==='en'?'ko':'en
 document.querySelector('#panel-language').onclick=()=>setLanguage(lang==='en'?'ko':'en');
 document.querySelector('#close-panel').onclick=closePanel;
 document.querySelector('#explore').onclick=()=>openPanel('robotics');
-document.querySelector('#office-explore').onclick=()=>{closePet(false);closeHobby(false);sceneAPI?.office();};
-document.querySelector('#reset').onclick=()=>{ closePet(false);closeHobby(false);closePanel(); sceneAPI?.reset(); };
-document.querySelector('#sky-view').onclick=()=>{closePet(false);closeHobby(false);sceneAPI?.skyView();};
+document.querySelector('#office-explore').onclick=()=>{closeCar(false);closePet(false);closeHobby(false);sceneAPI?.office();};
+document.querySelector('#reset').onclick=()=>{ closeCar(false);closePet(false);closeHobby(false);closePanel(); sceneAPI?.reset(); };
+document.querySelector('#sky-view').onclick=()=>{closeCar(false);closePet(false);closeHobby(false);sceneAPI?.skyView();};
 document.querySelector('#zoom-in').onclick=()=>sceneAPI?.zoom(.82);
 document.querySelector('#zoom-out').onclick=()=>sceneAPI?.zoom(1.22);
-function enterJourney(kind="overseas"){if(departing||journeyOpen)return;journeyMode=kind;closePet(false);closeHobby(false);closePanel();departing=true;document.querySelector('#departure-skip').hidden=false;document.querySelectorAll('.masthead nav button').forEach(b=>b.disabled=true);document.body.classList.add('departing');document.querySelector('.hotspots').inert=true;document.querySelector('.research-controls').inert=true;sceneAPI?.depart(()=>{departing=false;document.querySelector('#departure-skip').hidden=true;document.querySelectorAll('.masthead nav button').forEach(b=>b.disabled=false);document.body.classList.remove('departing');document.querySelector('.hotspots').inert=false;document.querySelector('.research-controls').inert=false;journeyOpen=true;document.body.classList.add('journey-open');sceneAPI.enterJourney(kind);document.body.classList.toggle("domestic-open",kind==="domestic");document.querySelector(kind==="domestic"?'#domestic-back':'#journey-back').focus({preventScroll:true});},kind);}
+function enterJourney(kind="overseas"){if(departing||journeyOpen)return;journeyMode=kind;closeCar(false);closePet(false);closeHobby(false);closePanel();departing=true;document.querySelector('#departure-skip').hidden=false;document.querySelectorAll('.masthead nav button').forEach(b=>b.disabled=true);document.body.classList.add('departing');document.querySelector('.hotspots').inert=true;document.querySelector('.research-controls').inert=true;sceneAPI?.depart(()=>{departing=false;document.querySelector('#departure-skip').hidden=true;document.querySelectorAll('.masthead nav button').forEach(b=>b.disabled=false);document.body.classList.remove('departing');document.querySelector('.hotspots').inert=false;document.querySelector('.research-controls').inert=false;journeyOpen=true;document.body.classList.add('journey-open');sceneAPI.enterJourney(kind);document.body.classList.toggle("domestic-open",kind==="domestic");document.querySelector(kind==="domestic"?'#domestic-back':'#journey-back').focus({preventScroll:true});},kind);}
 function exitJourney(){journeyOpen=false;document.body.classList.remove('journey-open','domestic-open');sceneAPI?.exitJourney();document.querySelector(journeyMode==='domestic'?'#train-link':'#airplane-link').focus({preventScroll:true});}
 document.querySelector('#airplane-link').onclick=()=>enterJourney('overseas');document.querySelector('#train-link').onclick=()=>enterJourney('domestic');document.querySelector('#domestic-access').onclick=()=>enterJourney('domestic');document.querySelector('#overseas-access').onclick=()=>enterJourney('overseas');document.querySelector('#domestic-back').onclick=exitJourney;document.querySelector('#departure-skip').onclick=()=>sceneAPI?.finishDeparture();
 document.querySelector('#journey-back').onclick=exitJourney;
 document.querySelector('#rotate').onclick=()=>{ const button=document.querySelector('#rotate'); const next=button.getAttribute('aria-pressed')!=='true'; button.setAttribute('aria-pressed',String(next)); sceneAPI?.rotate(next); };
 document.addEventListener('keydown',event=>{
+  if(carFocus&&event.key==='Escape'){closeCar();return;}
   if(petFocus&&event.key==='Escape'){closePet();return;}
   if(departing&&event.key==='Escape'){sceneAPI?.finishDeparture();return;}
   if(journeyOpen&&event.key==='Escape'){exitJourney();return;}
@@ -163,9 +167,13 @@ document.addEventListener('keydown',event=>{
   if(event.key==='Escape') closePanel();
   if(event.key==='Tab'&&panel.getAttribute('aria-modal')==='true') { const focusable=[...panel.querySelectorAll('button,a[href]')].filter(el=>el.getClientRects().length); const first=focusable[0],last=focusable.at(-1); if(event.shiftKey && document.activeElement===first){event.preventDefault();last.focus()}else if(!event.shiftKey && document.activeElement===last){event.preventDefault();first.focus()} }
 });
-function openPet(){if(departing)return;closeHobby(false);if(journeyOpen)exitJourney();if(currentPanel)closePanel();petFocus=true;sceneAPI?.petSelect(true);sceneAPI?.petView();}
+function openPet(){if(departing)return;closeCar(false);closeHobby(false);if(journeyOpen)exitJourney();if(currentPanel)closePanel();petFocus=true;sceneAPI?.petSelect(true);sceneAPI?.petView();}
 function closePet(restore=true){if(!petFocus)return;petFocus=false;sceneAPI?.petSelect(false);if(restore){sceneAPI?.office();document.querySelector('#pet-access').focus({preventScroll:true});}}
 document.querySelectorAll('[data-pet-open]').forEach(b=>b.onclick=openPet);
+function openCar(id){if(!departing)sceneAPI?.carSelect(id);}
+function carSelected(){closeHobby(false);closePet(false);if(journeyOpen)exitJourney();if(currentPanel)closePanel();carFocus=true;carFollowing=false;sceneAPI?.carView();}
+function closeCar(restore=true){if(!carFocus)return;carFocus=false;carFollowing=false;sceneAPI?.carClose(false);if(restore){sceneAPI?.reset();document.querySelector('#parking-access').focus({preventScroll:true});}}
+document.querySelectorAll('[data-parking-open]').forEach(b=>b.onclick=()=>openCar(sceneAPI?.activeCarId()||'accent-2012'));
 setLanguage(lang);
 recordViewer=createRecordViewer({sourceDocument,getLanguage:()=>lang,onLanguage:()=>setLanguage(lang==='en'?'ko':'en'),onClose:()=>sceneAPI?.office()});
 
@@ -261,6 +269,10 @@ function createScene() {
   // Cutaway field office: the seated researcher is the entrance to the full CV.
   const researcher=new THREE.Group();researcher.position.set(-7.8,0,5.25);researcher.scale.setScalar(1.2);world.add(researcher);
   box(researcher,[4.15,.14,3.35],[0,.015,0],palette.slab);
+  // Low entrance ramps connect the slabs to the site's ground level.
+  const officeRamp=box(world,[.8,.025,Math.hypot(.49,.237)],[-7,-.0165-.012,7.505],0x8a7b64);officeRamp.rotation.x=Math.atan2(.237,.49);
+  const buildingRamp=box(world,[Math.hypot(.7,.215),.025,1.0],[-2.45,-.0275-.012,.1],0x878078);buildingRamp.rotation.z=Math.atan2(.215,.7);
+
   box(researcher,[4.05,2.4,.12],[0,1.25,-1.5],0x8e9693);
   box(researcher,[.12,2.4,1.5],[2,1.25,-.8],0x8e9693);
   for(let x=-1.8;x<2;x+=.2)box(researcher,[.018,2.3,.015],[x,1.25,-1.424],0x747e7c);
@@ -308,7 +320,9 @@ function createScene() {
   const trail=new THREE.Mesh(new THREE.SphereGeometry(.07,12,12),new THREE.MeshBasicMaterial({color:0xffda8c}));world.add(trail);
   const light=new THREE.PointLight(0x9cecf5,4,10);light.position.set(0,2.6,2.8);scene.add(light);
   const pet=sitePet({world,camera,container,reducedMotion:reduceMotion,getLanguage:()=>lang,onClose:()=>closePet()});
-  const hotspotAnchors={pet:pet.anchor,robotics:new THREE.Vector3(-.8,2.7,3.4),vision:new THREE.Vector3(7.4,3.8,5),digital:new THREE.Vector3(3,8.4,1.8),avatar:new THREE.Vector3(-7.8,2.8,5.25),airplane:new THREE.Vector3(-44,2.7,-3),train:new THREE.Vector3(-23,2.8,-3)};
+  const carMotion=carLife({world,parking,camera,container,getLanguage:()=>lang,reducedMotion:reduceMotion,onSelect:carSelected,onClose:()=>closeCar(),onBoard:()=>{carFollowing=!reduceMotion;if(carFollowing)startCarFollow();},onFollow:value=>{carFollowing=value;if(value)startCarFollow();},onComplete:()=>{carFollowing=false;if(carFocus)carView();}});
+  const carFollowLast=new THREE.Vector3();
+  const hotspotAnchors={parking:new THREE.Vector3(-4,1.8,22.45),pet:pet.anchor,robotics:new THREE.Vector3(-.8,2.7,3.4),vision:new THREE.Vector3(7.4,3.8,5),digital:new THREE.Vector3(3,8.4,1.8),avatar:new THREE.Vector3(-7.8,2.8,5.25),airplane:new THREE.Vector3(-44,2.7,-3),train:new THREE.Vector3(-23,2.8,-3)};
   researcher.updateMatrixWorld(true);for(const [kind,object] of Object.entries(officeObjects)){hotspotAnchors[kind]=object.localToWorld(new THREE.Vector3(0,kind==='awards'?.4:1.5,0));}
   Object.assign(hotspotAnchors,hobbies.anchors);
   const hotspotButtons=[...document.querySelectorAll('.hotspot')];
@@ -325,15 +339,17 @@ function createScene() {
     targetAngle=Math.atan2(-direction.x,-direction.z);targetPitch=-Math.asin(direction.y);targetDistance=mobile?50:42;targetLook.set(-5,8-Math.sin(targetPitch)*targetDistance,0);
     document.querySelector('#rotate').setAttribute('aria-pressed','false');
   }
-  function zoom(factor){targetDistance=THREE.MathUtils.clamp(targetDistance*factor,journeyOpen?8:petFocus?1.3:officeMode?3:9,journeyOpen?22:petFocus?8:110);}
-  function calendarFocus(){closePet(false);closeHobby(false);skyMode=false;officeMode=true;targetAngle=.12;targetPitch=.12;targetDistance=4.8;targetLook.copy(seoulLive.calendarPosition());autoRotate=false;}
+  function zoom(factor){targetDistance=THREE.MathUtils.clamp(targetDistance*factor,journeyOpen?8:petFocus?1.3:carFocus?4:officeMode?3:9,journeyOpen?22:petFocus?8:110);}
+  function calendarFocus(){closeCar(false);closePet(false);closeHobby(false);skyMode=false;officeMode=true;targetAngle=.12;targetPitch=.12;targetDistance=4.8;targetLook.copy(seoulLive.calendarPosition());autoRotate=false;}
   function hobby(kind){hobbies.select(kind);container.dataset.hobbyFocus=kind;if(kind==='auto')return;officeMode=false;skyMode=false;autoRotate=false;targetAngle=kind==='bowling'?Math.PI/2+.1:.1;targetPitch=kind==='bowling'?.78:.65;targetDistance=kind==='bowling'?(mobile?38:36):(mobile?24:23);targetLook.copy(hobbies.anchors[kind]);if(!mobile){if(kind==='bowling')targetLook.z-=3;else targetLook.x-=3;}document.querySelector('#rotate').setAttribute('aria-pressed','false');}
   function gameView(kind){officeMode=false;skyMode=false;autoRotate=false;pointers.clear();drag=false;moved=false;targetAngle=kind==='bowling'?Math.PI/2:0;targetPitch=kind==='bowling'?1.12:1.2;targetDistance=kind==='bowling'?38:28;if(kind==='bowling')targetLook.copy(hobbies.bowling.localToWorld(new THREE.Vector3(0,.5,1)));else targetLook.copy(hobbies.football.localToWorld(new THREE.Vector3(0,.3,0)));angle=targetAngle;pitch=targetPitch;distance=targetDistance;lookAt.copy(targetLook);document.querySelector('#rotate').setAttribute('aria-pressed','false');}
   function focus(kind){skyMode=false;const point=hotspotAnchors[kind]||new THREE.Vector3(1,5,0);officeMode=false;const room=!!officeObjects[kind];targetAngle=room?.12:.5;targetPitch=room?.28:.4;targetDistance=room?10:kind==='robotics'?11:kind==='vision'?23:31;targetLook.copy(point).add(new THREE.Vector3(room?3:kind==='robotics'?3.5:9,0,0));autoRotate=false;}
   function finishDeparture(){if(!departure)return;const done=departure.done,sequence=departure.kind==='domestic'?railBoarding:boarding;departure=null;sequence.animate(sequence.duration);skyFade.style.transition='none';skyFade.style.opacity='1';done();skyFade.getBoundingClientRect();skyFade.style.transition='opacity .8s ease-out';skyFade.style.opacity='0';}
   function office(){skyMode=false;officeMode=true;targetAngle=.12;targetPitch=.32;targetDistance=mobile?11:10;targetLook.set(-7.8,1.35,5.25);autoRotate=false;}
   function petView(){officeMode=false;skyMode=false;autoRotate=false;targetAngle=pet.state.heading-.32;targetPitch=.25;targetDistance=mobile?2.4:2.8;targetLook.copy(pet.dog.position).add(new THREE.Vector3(0,.30,0));pet.followDelta();document.querySelector('#rotate').setAttribute('aria-pressed','false');}
-  function resize(){const wasOffice=officeMode;width=container.clientWidth;height=container.clientHeight;mobile=width<=600;renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix();reset();if(mobile){lookAt.copy(targetLook);distance=targetDistance;}if(petFocus)petView();else if(games.isPlaying())gameView(hobbyFocus);else if(currentPanel)focus(currentPanel);else if(hobbyFocus)hobby(hobbyFocus);else if(wasOffice)office();}
+  function carView(){const car=carMotion.selected();if(!car)return;officeMode=false;skyMode=false;autoRotate=false;targetAngle=-.60;targetPitch=.48;targetDistance=mobile?11:10;targetLook.copy(car.group.position).add(new THREE.Vector3(0,.9,0));document.querySelector('#rotate').setAttribute('aria-pressed','false');}
+  function startCarFollow(){const point=carMotion.focusPoint();if(!point)return;carFollowLast.copy(point);targetLook.copy(point);targetDistance=mobile?13:12;autoRotate=false;officeMode=false;skyMode=false;}
+  function resize(){const wasOffice=officeMode;width=container.clientWidth;height=container.clientHeight;mobile=width<=600;renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix();reset();if(mobile){lookAt.copy(targetLook);distance=targetDistance;}if(carFocus){carFollowing?startCarFollow():carView();}else if(petFocus)petView();else if(games.isPlaying())gameView(hobbyFocus);else if(currentPanel)focus(currentPanel);else if(hobbyFocus)hobby(hobbyFocus);else if(wasOffice)office();}
   const observer=new ResizeObserver(resize);observer.observe(container);
   const pointers=new Map();let pinchDistance=0,dragTravel=0;
   function pan(dx,dy){const scale=2*targetDistance*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))/Math.max(height,1);const right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion);targetLook.addScaledVector(right,-dx*scale).addScaledVector(up,dy*scale);}
@@ -342,18 +358,20 @@ function createScene() {
   renderer.domElement.addEventListener('pointermove',event=>{const last=pointers.get(event.pointerId);if(!last)return;const before=[...pointers.values()];const dx=event.clientX-last.x,dy=event.clientY-last.y;pointers.set(event.pointerId,{x:event.clientX,y:event.clientY,pan:last.pan});dragTravel+=Math.hypot(dx,dy);if(dragTravel>5)moved=true;if(pointers.size===2){const [a,b]=[...pointers.values()],next=Math.hypot(a.x-b.x,a.y-b.y);pan((a.x+b.x-before[0].x-before[1].x)/2,(a.y+b.y-before[0].y-before[1].y)/2);if(next>0&&pinchDistance>0)zoom(pinchDistance/next);pinchDistance=next;}else if(last.pan){pan(dx,dy);}else{targetAngle-=dx*.005;targetPitch=THREE.MathUtils.clamp(targetPitch+dy*.005,skyMode?-1.45:-.45,1.48);}});
   function release(event){pointers.delete(event.pointerId);drag=pointers.size>0;pinchDistance=0;if(renderer.domElement.hasPointerCapture(event.pointerId))renderer.domElement.releasePointerCapture(event.pointerId);}
   renderer.domElement.addEventListener('pointerup',release);renderer.domElement.addEventListener('pointercancel',release);
-  document.querySelector('.world').addEventListener('wheel',event=>{if(departing){event.preventDefault();return;}if(games.isPlaying()||event.target.closest('#hobby-caption,#pet-panel'))return;if(event.target.closest('.journey-card,.research-controls,.journey-stops,.hero-intro'))return;event.preventDefault();zoom(Math.exp(THREE.MathUtils.clamp(event.deltaY,-300,300)*.0015));},{passive:false});
+  document.querySelector('.world').addEventListener('wheel',event=>{if(departing){event.preventDefault();return;}if(games.isPlaying()||event.target.closest('#hobby-caption,#pet-panel,#car-panel'))return;if(event.target.closest('.journey-card,.research-controls,.journey-stops,.hero-intro'))return;event.preventDefault();zoom(Math.exp(THREE.MathUtils.clamp(event.deltaY,-300,300)*.0015));},{passive:false});
   const raycaster=new THREE.Raycaster();const pointer=new THREE.Vector2();
-  renderer.domElement.addEventListener('click',event=>{if(departing||moved||currentPanel||games.isPlaying())return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);if(hobbyFocus&&raycaster.intersectObject(hobbies.player,true).length){games.start(hobbyFocus);return;}if(journeyOpen){const hit=raycaster.intersectObjects(activeJourney().pins)[0];if(hit){if(journeyMode==='domestic')domestic.selectCity(hit.object.userData.city);else journey.select(hit.object.userData.event);}return;}const hits=[];for(const [group,kind] of [[pet.dog,'pet'],[researcher,'avatar'],[parkedPlane,'airplane'],[parkedTrain,'train'],[robot,'robotics'],[sensor,'vision'],[building,'digital'],[crane,'digital'],[hobbies.football,'football'],[hobbies.bowling,'bowling']]){const hit=raycaster.intersectObject(group,true)[0];if(hit){let choice=kind;if(kind==='avatar'){for(let n=hit.object;n&&n!==researcher;n=n.parent){if(n.userData.calendar){choice='calendar';break;}if(n.userData.panel){choice=n.userData.panel;break;}}}hits.push({distance:hit.distance,kind:choice});}}hits.sort((a,b)=>a.distance-b.distance);if(hits[0]?.kind==='pet'){openPet();}else if(hits[0]?.kind==='avatar'){location.assign(document.querySelector('#avatar-link').href);}else if(hits[0]?.kind==='calendar')calendarFocus();else if(hits[0]?.kind==='airplane')enterJourney('overseas');else if(hits[0]?.kind==='train')enterJourney('domestic');else if(['football','bowling'].includes(hits[0]?.kind))openHobby(hits[0].kind);else if(hits.length){if(officeObjects[hits[0].kind])openArchive(hits[0].kind);else openPanel(hits[0].kind);}});
+  renderer.domElement.addEventListener('click',event=>{if(departing||moved||currentPanel||games.isPlaying())return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);if(hobbyFocus&&raycaster.intersectObject(hobbies.player,true).length){games.start(hobbyFocus);return;}if(journeyOpen){const hit=raycaster.intersectObjects(activeJourney().pins)[0];if(hit){if(journeyMode==='domestic')domestic.selectCity(hit.object.userData.city);else journey.select(hit.object.userData.event);}return;}const hits=[];for(const [group,kind] of [...parking.cars.map(car=>[car.group,'car:'+car.id]),[pet.dog,'pet'],[researcher,'avatar'],[parkedPlane,'airplane'],[parkedTrain,'train'],[robot,'robotics'],[sensor,'vision'],[building,'digital'],[crane,'digital'],[hobbies.football,'football'],[hobbies.bowling,'bowling']]){const hit=raycaster.intersectObject(group,true)[0];if(hit){let choice=kind;if(kind==='avatar'){for(let n=hit.object;n&&n!==researcher;n=n.parent){if(n.userData.calendar){choice='calendar';break;}if(n.userData.panel){choice=n.userData.panel;break;}}}hits.push({distance:hit.distance,kind:choice});}}hits.sort((a,b)=>a.distance-b.distance);if(hits[0]?.kind?.startsWith('car:')){openCar(hits[0].kind.slice(4));}else if(hits[0]?.kind==='pet'){openPet();}else if(hits[0]?.kind==='avatar'){location.assign(document.querySelector('#avatar-link').href);}else if(hits[0]?.kind==='calendar')calendarFocus();else if(hits[0]?.kind==='airplane')enterJourney('overseas');else if(hits[0]?.kind==='train')enterJourney('domestic');else if(['football','bowling'].includes(hits[0]?.kind))openHobby(hits[0].kind);else if(hits.length){if(officeObjects[hits[0].kind])openArchive(hits[0].kind);else openPanel(hits[0].kind);}});
   let previous=performance.now();
   function animate(now){const delta=Math.min((now-previous)/1000,.05);previous=now;const t=now/1000;
+    carMotion.update(delta,journeyOpen||departing||games.isPlaying()||recordViewer?.isOpen()||document.hidden);
+    if(carFocus&&carFollowing){const point=carMotion.focusPoint();if(point){targetLook.add(point.clone().sub(carFollowLast));carFollowLast.copy(point);}}
     pet.update(delta,journeyOpen||departing||games.isPlaying()||document.hidden);
     if(petFocus)targetLook.add(pet.followDelta());
     if(autoRotate&&!drag&&!currentPanel)targetAngle+=delta*.1;
     if(skyMode)targetLook.y=8-Math.sin(targetPitch)*targetDistance;
     const factor=reduceMotion?1:1-Math.exp(-delta*4.5);angle=THREE.MathUtils.lerp(angle,targetAngle,factor);pitch=THREE.MathUtils.lerp(pitch,targetPitch,factor);distance=THREE.MathUtils.lerp(distance,targetDistance,factor);lookAt.lerp(targetLook,factor);
     camera.position.set(lookAt.x+Math.sin(angle)*Math.cos(pitch)*distance,lookAt.y+Math.sin(pitch)*distance,lookAt.z+Math.cos(angle)*Math.cos(pitch)*distance);camera.lookAt(lookAt);
-    if(petFocus&&width>1100)camera.setViewOffset(width,height,-width*.13,0,width,height);else if(journeyOpen&&!mobile)camera.setViewOffset(width,height,width*.15,0,width,height);else if(officeMode&&!mobile)camera.setViewOffset(width,height,-width*.18,0,width,height);else if(mobile&&!journeyOpen)camera.setViewOffset(width,height,0,-height*.015,width,height);else camera.clearViewOffset();
+    if(carFocus&&width>1100)camera.setViewOffset(width,height,width*.12,0,width,height);else if(petFocus&&width>1100)camera.setViewOffset(width,height,-width*.13,0,width,height);else if(journeyOpen&&!mobile)camera.setViewOffset(width,height,width*.15,0,width,height);else if(officeMode&&!mobile)camera.setViewOffset(width,height,-width*.18,0,width,height);else if(mobile&&!journeyOpen)camera.setViewOffset(width,height,0,-height*.015,width,height);else camera.clearViewOffset();
     if(departure){const total=t-departure.started;const sequence=departure.kind==='domestic'?railBoarding:boarding;const board=sequence.animate(total);const elapsed=board.flightElapsed;if(total<sequence.duration){const blend=THREE.MathUtils.smoothstep(total,0,.8);camera.position.copy(departure.camera).lerp(board.point.clone().add(board.cameraOffset||new THREE.Vector3(3,2.2,5)),blend);camera.lookAt(departure.look.clone().lerp(board.point,blend));camera.clearViewOffset();container.dataset.boardingCameraPosition=JSON.stringify(camera.position.toArray());container.dataset.view=board.phase;container.dataset.boardingPhase=board.phase;container.dataset.avatarPosition=JSON.stringify(board.point.toArray());departure.boardLook=board.point.clone();departure.boardCamera=camera.position.clone();}else if(departure.kind==='domestic'){const travel=1.5*elapsed*elapsed;parkedTrain.position.set(-23,.015,-3+travel);const follow=parkedTrain.position.clone().add(new THREE.Vector3(8,4,10));const blend=THREE.MathUtils.smoothstep(elapsed,0,1);camera.position.copy(departure.boardCamera||departure.camera).lerp(follow,blend);camera.lookAt((departure.boardLook||departure.look).clone().lerp(parkedTrain.position.clone().add(new THREE.Vector3(0,1.5,0)),blend));camera.clearViewOffset();container.dataset.view='train-departure';container.dataset.trainForward=String(parkedTrain.position.z);skyFade.style.opacity=String(THREE.MathUtils.smoothstep(elapsed,3.7,5));if(elapsed>=5)finishDeparture();}else{if(!departure.flightCamera){departure.flightCamera=departure.boardCamera?.clone()||camera.position.clone();departure.flightLook=departure.boardLook?.clone()||lookAt.clone();}const travel=2.2*elapsed*elapsed;const lift=THREE.MathUtils.smoothstep(elapsed,2.2,3.5);const nosePitch=lift*.2;const airborne=Math.max(0,travel-2.2*2.2*2.2);parkedPlane.position.set(-44,-.06+airborne*Math.tan(nosePitch),-3+travel);parkedPlane.rotation.set(-nosePitch,0,0,'YXZ');const gear=parkedPlane.position.y>1.2?THREE.MathUtils.clamp((elapsed-3.3)/1.3,0,1):0;parkedPlane.userData.setGear(gear);container.dataset.gearProgress=String(gear);container.dataset.gearVisible=String(parkedPlane.userData.gearVisible);container.dataset.flightPhase=gear===1?'gear-up':gear>0?'gear-retracting':lift>0?'climbing':'rolling';const following=parkedPlane.position.clone().add(new THREE.Vector3(mobile?-10:-9,mobile?5:4,mobile?16:13));const blend=THREE.MathUtils.smoothstep(elapsed,0,1);camera.position.copy(departure.flightCamera).lerp(following,blend);camera.lookAt(departure.flightLook.clone().lerp(parkedPlane.position.clone().add(new THREE.Vector3(1,.7,0)),blend));camera.clearViewOffset();skyFade.style.opacity=String(THREE.MathUtils.smoothstep(elapsed,5.4,6.5));container.dataset.view='takeoff';container.dataset.planeAltitude=String(parkedPlane.position.y);container.dataset.planeForward=String(parkedPlane.position.z);container.dataset.planePitch=String(nosePitch);if(elapsed>=6.5)finishDeparture();}}
     if(!reduceMotion){scan.position.y=.6+(Math.sin(t*.7)*.5+.5)*2.1;trail.position.copy(path.getPointAt((t*.035)%1));hoist.position.y=Math.sin(t*.3)*.18;}
     recognition.visible=currentPanel!=='robotics';
@@ -368,6 +386,6 @@ function createScene() {
   }
   renderer.setAnimationLoop(animate);resize();lookAt.copy(targetLook);
   renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();document.querySelector('.scene-fallback').hidden=false;document.querySelector('#hotspots').hidden=true;});
-  return {petView,petSelect:pet.select,refreshPet:pet.refresh,reset,focus,zoom,office,skyView,hobby,finishDeparture,refreshEnvironment:seoulLive.refresh,sprayRunning:sprayer.isRunning,sprayToggle:sprayer.toggle,resetCoating:sprayer.resetCoating,isOffice(){return officeMode;},rotate(value){autoRotate=value;},depart(done,kind="overseas"){autoRotate=false;if(reduceMotion){done();return;}boarding.reset();railBoarding.reset();(kind==='domestic'?railBoarding:boarding).start();skyFade.style.transition='none';departure={kind,started:performance.now()/1000,camera:camera.position.clone(),look:lookAt.clone(),done};},refreshJourney(){activeJourney().render();},enterJourney(kind){journeyMode=kind;world.visible=false;scene.fog=null;activeJourney().open();angle=targetAngle;pitch=targetPitch;distance=targetDistance;lookAt.copy(targetLook);},exitJourney(){activeJourney().close();boarding.reset();railBoarding.reset();parkedPlane.position.set(-44,-.06,-3);parkedPlane.rotation.set(0,0,0);parkedPlane.userData.setGear(0);world.visible=true;scene.fog=new THREE.FogExp2(0x233744,.0035);reset();}};
+  return {carSelect:carMotion.select,carClose:carMotion.close,carView,refreshCars:carMotion.refresh,activeCarId(){return carMotion.isActive()?carMotion.selected()?.id:null;},petView,petSelect:pet.select,refreshPet:pet.refresh,reset,focus,zoom,office,skyView,hobby,finishDeparture,refreshEnvironment:seoulLive.refresh,sprayRunning:sprayer.isRunning,sprayToggle:sprayer.toggle,resetCoating:sprayer.resetCoating,isOffice(){return officeMode;},rotate(value){autoRotate=value;},depart(done,kind="overseas"){autoRotate=false;if(reduceMotion){done();return;}boarding.reset();railBoarding.reset();(kind==='domestic'?railBoarding:boarding).start();skyFade.style.transition='none';departure={kind,started:performance.now()/1000,camera:camera.position.clone(),look:lookAt.clone(),done};},refreshJourney(){activeJourney().render();},enterJourney(kind){journeyMode=kind;world.visible=false;scene.fog=null;activeJourney().open();angle=targetAngle;pitch=targetPitch;distance=targetDistance;lookAt.copy(targetLook);},exitJourney(){activeJourney().close();boarding.reset();railBoarding.reset();parkedPlane.position.set(-44,-.06,-3);parkedPlane.rotation.set(0,0,0);parkedPlane.userData.setGear(0);world.visible=true;scene.fog=new THREE.FogExp2(0x233744,.0035);reset();}};
 }
 try {sceneAPI=createScene();}catch(error){console.warn('3D scene unavailable',error);document.querySelector('.scene-fallback').hidden=false;document.querySelector('#hotspots').hidden=true;}

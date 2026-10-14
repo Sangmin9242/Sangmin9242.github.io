@@ -112,6 +112,10 @@ export function createMaltipoo() {
     }
   }
   head.add(eyes,shine);
+  const eyelidPath=new THREE.CatmullRomCurve3([new THREE.Vector3(-.015,0,0),new THREE.Vector3(0,-.004,.001),new THREE.Vector3(.015,0,0)]);
+  const eyelids=new THREE.InstancedMesh(new THREE.TubeGeometry(eyelidPath,8,.0025,4,false),eyeMat,2);
+  for(let i=0;i<2;i++){dummy.position.set((i?1:-1)*.043,.008,.087);dummy.rotation.set(0,(i?1:-1)*.2,0);dummy.scale.setScalar(1);dummy.updateMatrix();eyelids.setMatrixAt(i,dummy.matrix);}
+  eyelids.visible=false;head.add(eyelids);
   const nose=oval(head,[.018,.013,.011],[0,-.024,.125],noseMat,16);
   // Taper the lower edge into a soft triangular wet nose.
   const np=nose.geometry.attributes.position;
@@ -174,41 +178,53 @@ export function createMaltipoo() {
   dog.userData.pose=({type='stand',time=0,blend=1}={})=>{
     const t=Number.isFinite(time)?time:0;
     const b=Number.isFinite(blend)?THREE.MathUtils.clamp(blend,0,1):1;
-    const sitting=type==='sit',lying=type==='lie',eating=type==='eat',petting=type==='pet';
+    const sleeping=type==='sleep',peeing=type==='pee',pooping=type==='poop';
+    const sitting=type==='sit',lying=type==='lie'||sleeping,eating=type==='eat',petting=type==='pet';
     const walking=type==='walk',running=type==='run';
     const pace=running?10.5:6.0;
     body.position.set(0,.296,0);body.rotation.set(0,0,0);body.scale.set(1,1,1);
     if(sitting){body.position.y=lerp(.296,.218,b);body.rotation.x=-.40*b;body.position.z=-.035*b;}
     if(lying){body.position.y=lerp(.296,.146,b);body.rotation.x=-.04*b;body.position.z=-.018*b;}
+    if(sleeping){body.position.y=lerp(.296,.134,b);body.rotation.x=0;body.scale.y=1+Math.sin(t*1.65)*.009*b;}
+    if(peeing){body.position.y-=.012*b;body.rotation.z=-.045*b;body.rotation.x=-.025*b;}
+    if(pooping){body.position.y=lerp(.296,.195,b);body.rotation.x=-.22*b;body.position.z=-.020*b;}
     if(walking||running)body.position.y+=Math.sin(t*pace*2)* (running?.012:.004)*b;
     if(petting){body.rotation.z=Math.sin(t*3)*.025*b;}
     head.position.set(0,.137,.200);head.rotation.set(0,0,0);
     if(sitting)head.rotation.x=.18*b;
     if(lying)head.position.y-=.018*b;
+    if(sleeping){head.position.y-=.129*b;head.rotation.x=.18*b;head.rotation.z=.07*b;}
+    if(pooping)head.rotation.x=.12*b;
+    if(peeing)head.rotation.y=-.28*b;
+    eyes.visible=shine.visible=!(sleeping&&b>.6);eyelids.visible=sleeping&&b>.6;
     if(eating){body.position.y-=.024*b;body.rotation.x=.20*b;head.rotation.x=.82*b;head.position.y-=.177*b;head.position.z+=.031*b;head.rotation.x+=Math.sin(t*7)*.032*b;}
     if(petting){head.rotation.z=Math.sin(t*2.2)*.08*b;head.rotation.x=-.07*b;}
     if(walking||running)head.rotation.x=Math.sin(t*pace)*.024*b;
     mouth.scale.y=.006*(1+(eating?Math.max(0,Math.sin(t*8))*1.1*b:petting?.4*b:0));
     beard.rotation.x=eating?Math.sin(t*8)*.015*b:0;
     ears.forEach((ear,i)=>{ear.rotation.set((walking||running?Math.sin(t*pace+i*.8)*.10:Math.sin(t*2+i)*.018)*b,0,(i?1:-1)*.10+(petting?Math.sin(t*3)*.055*b:0));});
-    tail.rotation.set(-.10+(lying?.55*b:0),Math.sin(t*(petting?7:walking||running?5:2.8))*(petting?.40:.18)*b,Math.sin(t*2)*.025*b);
+    tail.rotation.set(-.10+(lying?.55*b:0)+(sleeping?.70*b:0)+(pooping?.70*b:0),Math.sin(t*(petting?7:walking||running?5:2.8))*(sleeping?.012:peeing||pooping?.05:petting?.40:.18)*b,Math.sin(t*2)*.025*b);
     body.updateMatrix();
     for(const leg of legs) {
       let z=leg.front?.142:-.148,y=.022;
       if(sitting)z=lerp(z,leg.front?.205:-.221,b);
       if(lying)z=lerp(z,leg.front?.365:-.160,b);
+      if(pooping)z=lerp(z,leg.front?.205:-.225,b);
       if(walking||running) {
         const phase=t*pace+(leg.side<0?Math.PI:0)+(leg.front?0:Math.PI);
         const stride=running?.074:.041;
         z+=Math.cos(phase)*stride*b;
         y+=Math.max(0,Math.sin(phase))*(running?.058:.024)*b;
       }
-      solveLeg(leg,y+((sitting||lying)?.010*b:0),z,lying&&!leg.front?.075*b:0);
+      const lifted=peeing&&!leg.front&&leg.side===1;
+      solveLeg(leg,lifted?lerp(y,.21,b):y+((sitting||lying||pooping)?.010*b:0)+(sleeping?.002*b:0),z,lifted?.17*b:lying&&!leg.front?.075*b:0);
     }
     head.updateWorldMatrix(true,false);
     dog.updateWorldMatrix(true,false);
     dog.userData.headAnchor.copy(head.position).applyMatrix4(body.matrix).add(rig.position);
     dog.userData.poseType=type;
+    dog.userData.closedEyes=sleeping&&b>.6;
+    dog.userData.liftedLeg=peeing&&b>.6;
     return dog;
   };
   dog.userData.headAnchor=new THREE.Vector3();

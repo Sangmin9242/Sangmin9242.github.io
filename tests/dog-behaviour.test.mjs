@@ -1,171 +1,43 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-
-let createDogBehaviour;
-try { ({ createDogBehaviour } = await import('../dog-behaviour.js')); }
-catch (error) { if (error.code !== 'ERR_MODULE_NOT_FOUND') throw error; }
-
-test('dog exposes a deterministic behaviour controller', () => {
-  assert.equal(typeof createDogBehaviour, 'function', 'createDogBehaviour implementation is missing');
+import { createDogBehaviour } from '../dog-behaviour.js';
+const near=(a,b,e=1e-7)=>assert.ok(Math.abs(a-b)<e,`${a} != ${b}`);
+const advance=(dog,s,fps=60)=>{for(let i=0;i<Math.round(s*fps);i++)dog.update(1/fps);};
+function clear(s){
+  assert.ok(s.x>=-14.01&&s.x<=7.01&&s.z>=-5.51&&s.z<=14.01,'outside safe site envelope');
+  const excluded=[[-3.5,2.5,2.3,5.5],[-7.6,-5,-5.1,-2.5],[.20,.80,-3.55,-.25],[-1.95,-.05,-1.50,-.9],[4.4,5.1,-3.7,2.2],[-10.25,-8.85,6,7.1],[-8.9,-7.8,5.3,6.5],[-6.75,-5.5,5.25,6.4]];
+  for(const [x1,x2,z1,z2] of excluded)assert.ok(!(s.x>x1&&s.x<x2&&s.z>z1&&s.z<z2),`obstacle at ${s.x},${s.z}`);
+  for(const x of [-2,1.3,4.6])for(const z of [-3.3,-.8,1.7])assert.ok(Math.hypot(s.x-x,s.z-z)>.40,'column collision');
+}
+test('home is clear inside the office on its raised floor',()=>{const {state:s}=createDogBehaviour();near(s.x,-7);near(s.z,6.7);near(s.y,.102);assert.equal(s.zone,'office');});
+test('autonomy visits interior and all sides of building with sleep and outdoor toilet habits',()=>{
+  const dog=createDogBehaviour(),poses=new Set(),zones=new Set();let west=false,rear=false,east=false,front=false;
+  for(let i=0;i<480*50;i++){
+    const before={...dog.state};dog.update(.02);const s=dog.state;clear(s);poses.add(s.pose);zones.add(s.zone);
+    west||=s.x<-12;rear||=s.z<-5;east||=s.x>6;front||=s.z>13.8;
+    assert.ok(Math.hypot(s.x-before.x,s.z-before.z)<=2.2*.02+1e-7,'teleport or excessive speed');
+    assert.ok(Math.abs(s.y-before.y)<.03,'floor height jumped');
+    if(s.pose==='pee'||s.pose==='poop')assert.equal(s.zone,'outdoors');
+    if(s.zone==='office')near(s.y,.102);
+    if(s.zone==='first-floor')near(s.y,.08);
+    const distance=Math.hypot(s.x-before.x,s.z-before.z);
+    if(s.moving&&distance>1e-6)assert.ok(((s.x-before.x)*Math.sin(s.heading)+(s.z-before.z)*Math.cos(s.heading))/distance>.99);
+  }
+  for(const p of ['sit','sleep','walk','run','sniff','pee','poop'])assert.ok(poses.has(p),`missing ${p}`);
+  assert.ok(zones.has('first-floor'));assert.ok(west&&rear&&east&&front,'roaming is too narrow');
 });
-
-const near = (actual, expected, epsilon = 1e-7) => assert.ok(Math.abs(actual - expected) < epsilon, `${actual} should be near ${expected}`);
-function advance(dog, seconds, fps = 60) {
-  for (let frame = 0; frame < Math.round(seconds * fps); frame++) dog.update(1 / fps);
-}
-
-if (createDogBehaviour) {
-  test('autonomy visits sitting, resting, walking and running inside the clear forecourt', () => {
-    const dog = createDogBehaviour(), poses = new Set();
-    for (let frame = 0; frame < 90 * 100; frame++) {
-      const before = { ...dog.state };
-      dog.update(.01);
-      const { x, z, heading, pose } = dog.state;
-      poses.add(pose);
-      assert.ok(x >= -14.001 && x <= -6.999, `unsafe x ${x}`);
-      assert.ok(z >= 8.499 && z <= 15.001, `unsafe z ${z}`);
-      const dx = x - before.x, dz = z - before.z, distance = Math.hypot(dx, dz);
-      assert.ok(distance <= .018001, 'dog must not jump or exceed 1.8 metres per second');
-      if (distance > 1e-6 && dog.state.moving) assert.ok((dx * Math.sin(heading) + dz * Math.cos(heading)) / distance > .65, 'local +Z faces movement');
-    }
-    for (const pose of ['sit', 'lie', 'walk', 'run']) assert.ok(poses.has(pose), `missing ${pose}`);
-  });
-
-  test('the same elapsed time produces the same journey at different frame rates', () => {
-    const slow = createDogBehaviour(), fast = createDogBehaviour();
-    advance(slow, 48, 30); advance(fast, 48, 120);
-    near(slow.state.x, fast.state.x); near(slow.state.z, fast.state.z);
-    near(slow.state.time, fast.state.time);
-    assert.equal(slow.state.action, fast.state.action);
-    assert.equal(slow.state.pose, fast.state.pose);
-  });
-
-  test('petting interrupts movement immediately and gives a short heart response', () => {
-    const dog = createDogBehaviour(); advance(dog, 19);
-    assert.ok(dog.state.moving);
-    const { x, z, affection, hearts } = dog.state;
-    assert.equal(dog.interact('pet'), true);
-    assert.equal(dog.state.action, 'pet'); assert.equal(dog.state.pose, 'wag');
-    assert.equal(dog.state.hearts, hearts + 1); assert.ok(dog.state.affection > affection);
-    assert.ok(dog.state.effectTime > 0);
-    advance(dog, 2.5); near(dog.state.x, x); near(dog.state.z, z);
-    assert.equal(dog.state.moving, false);
-    advance(dog, 1); assert.notEqual(dog.state.action, 'pet');
-  });
-
-  test('treats stop roaming, play eating and reject repeated rewards during cooldown', () => {
-    const dog = createDogBehaviour(); advance(dog, 19);
-    const { x, z } = dog.state;
-    assert.equal(dog.interact('treat'), true);
-    assert.equal(dog.state.pose, 'eat'); assert.equal(dog.state.treats, 1);
-    const affection = dog.state.affection;
-    assert.equal(dog.interact('treat'), false);
-    assert.equal(dog.state.affection, affection); assert.equal(dog.state.treats, 1);
-    advance(dog, 2.5); near(dog.state.x, x); near(dog.state.z, z);
-    advance(dog, 5.6);
-    assert.equal(dog.interact('treat'), true); assert.equal(dog.state.treats, 2);
-  });
-
-  test('calling returns along the clear route smoothly and sits at home', () => {
-    for (const departureTime of [19, 32]) {
-      const dog = createDogBehaviour(); advance(dog, departureTime);
-      const before = { ...dog.state };
-      assert.equal(dog.interact('call'), true);
-      near(dog.state.x, before.x); near(dog.state.z, before.z);
-      let arrived = false;
-      for (let frame = 0; frame < 60 * 30; frame++) {
-        const { x, z } = dog.state; dog.update(1 / 60);
-        assert.ok(Math.hypot(dog.state.x - x, dog.state.z - z) <= 1.8 / 60 + 1e-7);
-        assert.ok(dog.state.z >= 8.499 && dog.state.z <= 15.001);
-        // Between the office entrance and z10.5, only the front-left path is used.
-        if (dog.state.z < 10.499) near(dog.state.x, -10.5);
-        if (Math.hypot(dog.state.x + 10.5, dog.state.z - 8.5) < 1e-7) { arrived = true; break; }
-      }
-      assert.ok(arrived); assert.equal(dog.state.pose, 'sit'); assert.equal(dog.state.moving, false);
-    }
-  });
-
-  test('pause freezes timers and rewards, then resumes without catching up', () => {
-    const dog = createDogBehaviour(); advance(dog, 19); dog.setPaused(true);
-    const before = { ...dog.state };
-    advance(dog, 30); assert.deepEqual(dog.state, before);
-    assert.equal(dog.interact('treat'), false); assert.equal(dog.interact('call'), false);
-    dog.setPaused(false); dog.update(1 / 60);
-    assert.ok(Math.hypot(dog.state.x - before.x, dog.state.z - before.z) < .031);
-  });
-
-  test('reduced motion stays seated but still acknowledges petting and treats', () => {
-    const dog = createDogBehaviour({ reducedMotion: true }); advance(dog, 120);
-    near(dog.state.x, -10.5); near(dog.state.z, 8.5); assert.equal(dog.state.pose, 'sit');
-    dog.interact('pet'); assert.equal(dog.state.hearts, 1); advance(dog, 4);
-    dog.interact('treat'); assert.equal(dog.state.pose, 'eat'); advance(dog, 4);
-    dog.interact('call'); advance(dog, 30);
-    near(dog.state.x, -10.5); near(dog.state.z, 8.5); assert.equal(dog.state.pose, 'sit');
-  });
-
-  test('invalid time and interactions leave finite state intact; long frames are bounded', () => {
-    const dog = createDogBehaviour(); const initial = { ...dog.state };
-    for (const dt of [NaN, Infinity, -1, 0, undefined, '1']) dog.update(dt);
-    assert.deepEqual(dog.state, initial); assert.equal(dog.interact('unknown'), false);
-    advance(dog, 19); const before = { ...dog.state }; dog.update(3600);
-    assert.ok(dog.state.time - before.time <= .250001);
-    assert.ok(Math.hypot(dog.state.x - before.x, dog.state.z - before.z) <= .450001);
-  });
-
-  test('reset restores session counters and keeps the state reference stable', () => {
-    const dog = createDogBehaviour(), state = dog.state;
-    dog.interact('pet'); advance(dog, 4); dog.interact('treat'); dog.setPaused(true); dog.reset();
-    assert.equal(dog.state, state); near(state.x, -10.5); near(state.z, 8.5);
-    assert.equal(state.affection, 50); assert.equal(state.hearts, 0); assert.equal(state.treats, 0);
-    assert.equal(state.pose, 'sit'); advance(dog, 19); assert.ok(state.moving);
-  });
-
-  test('focus sits at the current route position and resumes the interrupted walk on blur', () => {
-    const dog = createDogBehaviour(), uninterrupted = createDogBehaviour();
-    assert.equal(typeof dog.setFocused, 'function', 'focus control is missing');
-    advance(dog, 19); advance(uninterrupted, 19);
-    const { x, z } = dog.state; dog.setFocused(true);
-    assert.equal(dog.state.pose, 'sit'); assert.equal(dog.state.moving, false);
-    advance(dog, 20); near(dog.state.x, x); near(dog.state.z, z);
-    dog.setFocused(false); assert.equal(dog.state.pose, 'walk');
-    advance(dog, 2); advance(uninterrupted, 2);
-    near(dog.state.x, uninterrupted.state.x); near(dog.state.z, uninterrupted.state.z);
-  });
-
-  test('focused reactions expire and cooldowns advance while the dog stays in place', () => {
-    const dog = createDogBehaviour();
-    assert.equal(typeof dog.setFocused, 'function', 'focus control is missing');
-    advance(dog, 19); const { x, z } = dog.state; dog.setFocused(true);
-    assert.equal(dog.interact('pet'), true); assert.equal(dog.state.pose, 'wag');
-    advance(dog, 4); assert.equal(dog.state.pose, 'sit'); near(dog.state.effectTime, 0);
-    assert.equal(dog.interact('treat'), true); assert.equal(dog.state.pose, 'eat');
-    advance(dog, 4); assert.equal(dog.state.pose, 'sit'); assert.equal(dog.interact('treat'), false);
-    advance(dog, 4.1); assert.equal(dog.interact('treat'), true); assert.equal(dog.state.treats, 2);
-    near(dog.state.x, x); near(dog.state.z, z);
-    dog.setFocused(false); assert.equal(dog.state.pose, 'eat');
-    advance(dog, 3.1); assert.equal(dog.state.pose, 'walk'); assert.ok(dog.state.moving);
-  });
-
-  test('calling while focused follows the route home then stays seated until blur', () => {
-    const dog = createDogBehaviour();
-    assert.equal(typeof dog.setFocused, 'function', 'focus control is missing');
-    advance(dog, 32); dog.setFocused(true); const { x, z } = dog.state;
-    assert.equal(dog.interact('call'), true); near(dog.state.x, x); near(dog.state.z, z);
-    assert.equal(dog.state.action, 'call'); advance(dog, 30);
-    near(dog.state.x, -10.5); near(dog.state.z, 8.5); assert.equal(dog.state.pose, 'sit');
-    assert.equal(dog.state.focused, true); advance(dog, 30);
-    near(dog.state.x, -10.5); near(dog.state.z, 8.5);
-    dog.setFocused(false); advance(dog, 19); assert.ok(dog.state.moving);
-  });
-
-  test('focus respects full pause, reduced motion and reset', () => {
-    const dog = createDogBehaviour({ reducedMotion: true });
-    assert.equal(typeof dog.setFocused, 'function', 'focus control is missing');
-    dog.setFocused(true); dog.interact('treat'); dog.setPaused(true);
-    const snapshot = { ...dog.state }; advance(dog, 20); assert.deepEqual(dog.state, snapshot);
-    assert.equal(dog.interact('pet'), false); dog.setPaused(false); advance(dog, 4);
-    dog.setFocused(false); advance(dog, 40);
-    near(dog.state.x, -10.5); near(dog.state.z, 8.5); assert.equal(dog.state.pose, 'sit');
-    dog.setFocused(true); dog.reset(); assert.equal(dog.state.focused, false);
-  });
-}
+test('shortest connected calls return smoothly to office from all regions',()=>{
+  for(const departure of [19,42,69,92,115,144,172,215,270]){
+    const dog=createDogBehaviour();advance(dog,departure);dog.setFocused(true);const before={...dog.state};assert.equal(dog.interact('call'),true);near(dog.state.x,before.x);near(dog.state.z,before.z);
+    let home=false;
+    for(let i=0;i<120*60;i++){const p={...dog.state};dog.update(1/60);clear(dog.state);assert.ok(Math.hypot(dog.state.x-p.x,dog.state.z-p.z)<1.15/60+1e-7);assert.ok(Math.abs(dog.state.y-p.y)<.02);if(dog.state.action!=='call'){home=true;break;}}
+    assert.ok(home);near(dog.state.x,-7);near(dog.state.z,6.7);near(dog.state.y,.102);assert.equal(dog.state.pose,'sit');advance(dog,20);near(dog.state.x,-7);
+  }
+});
+test('same elapsed time produces same journey at different frame rates',()=>{const a=createDogBehaviour(),b=createDogBehaviour();advance(a,178,30);advance(b,178,120);for(const key of ['x','y','z','time'])near(a.state[key],b.state[key]);assert.equal(a.state.action,b.state.action);});
+test('pet and treat responses interrupt then restore movement with cooldowns',()=>{const d=createDogBehaviour();advance(d,19);assert.ok(d.state.moving);const {x,z}=d.state;assert.ok(d.interact('pet'));assert.equal(d.state.pose,'wag');assert.equal(d.state.hearts,1);assert.equal(d.interact('pet'),false);advance(d,2.5);near(d.state.x,x);near(d.state.z,z);advance(d,1);assert.ok(d.state.moving);assert.ok(d.interact('treat'));assert.equal(d.state.pose,'eat');assert.equal(d.interact('treat'),false);advance(d,8.1);assert.ok(d.interact('treat'));assert.equal(d.state.treats,2);});
+test('focus freezes routine while reactions and cooldowns continue',()=>{const a=createDogBehaviour(),b=createDogBehaviour();advance(a,19);advance(b,19);a.setFocused(true);const {x,z}=a.state;a.interact('treat');advance(a,9);near(a.state.x,x);near(a.state.z,z);assert.equal(a.state.pose,'sit');near(a.state.treatCooldown,0);a.setFocused(false);advance(a,2);advance(b,2);near(a.state.x,b.state.x);near(a.state.z,b.state.z);});
+test('pause freezes all counters and rejects interactions',()=>{const d=createDogBehaviour();advance(d,19);d.setPaused(true);const s={...d.state};advance(d,40);assert.deepEqual(d.state,s);assert.equal(d.interact('call'),false);assert.equal(d.interact('treat'),false);d.setPaused(false);d.update(.02);assert.ok(d.state.time>s.time);});
+test('reduced motion stays inside office and accepts responses',()=>{const d=createDogBehaviour({reducedMotion:true});advance(d,500);near(d.state.x,-7);near(d.state.y,.102);near(d.state.z,6.7);assert.equal(d.state.pose,'sit');d.interact('pet');assert.equal(d.state.hearts,1);advance(d,4);d.interact('treat');assert.equal(d.state.pose,'eat');advance(d,4);d.interact('call');assert.equal(d.state.pose,'sit');});
+test('invalid and stalled frames cannot fast-forward or poison state',()=>{const d=createDogBehaviour(),s={...d.state};for(const dt of [NaN,Infinity,-1,0,undefined,'1'])d.update(dt);assert.deepEqual(d.state,s);advance(d,19);const before={...d.state};d.update(3600);assert.ok(d.state.time-before.time<=.250001);assert.ok(Math.hypot(d.state.x-before.x,d.state.z-before.z)<=.550001);});
+test('reset retains state reference and restores home, focus and session counters',()=>{const d=createDogBehaviour(),s=d.state;d.interact('pet');advance(d,4);d.interact('treat');d.setFocused(true);d.setPaused(true);d.reset();assert.equal(d.state,s);near(s.x,-7);near(s.y,.102);near(s.z,6.7);assert.equal(s.focused,false);assert.equal(s.paused,false);assert.equal(s.hearts,0);assert.equal(s.treats,0);});
