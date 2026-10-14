@@ -1,6 +1,6 @@
 import {roadOutline as defaultRoad,forecourtPads as defaultPads} from './driveway-layout.js';
 
-// Renderer-independent bicycle model. +Z is forward and right steering is positive.
+// Renderer-independent bicycle model. +Z is forward; the driver's right is -X.
 const STEP=1/240,EPS=1e-8;
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const finite=(n,fallback)=>Number.isFinite(n)?n:fallback;
@@ -89,7 +89,7 @@ export function createCarDriving(spec={}){
     return distance;
   }
   function drive(){
-    state.steering=approach(state.steering,input.steer*.58,3*STEP);
+    state.steering=approach(state.steering,-input.steer*.58,3*STEP);
     const prior=state.speed;
     if(input.brake)state.speed=approach(prior,0,8.5*STEP);
     else if(input.throttle===0)state.speed=approach(prior,0,.9*STEP);

@@ -1,16 +1,18 @@
 import * as THREE from './vendor/three.module.js';
+import {createCarSideMirrors} from './car-side-mirrors.js?v=20261015-drive-fix';
 
 const GLASS_PARTS=new Set(['windshield','rear-window','side-window','panoramic-roof','sunroof']);
 
 // The shared seated worker has a .54 m hip pivot and eyes .77 m above it.
 // Car local +Z is forward. The eye stays fixed in the seat during driving.
-export function createCarCockpit({camera,worker,getCar}={}){
+export function createCarCockpit({camera,worker,getCar,renderer,scene}={}){
   const eye=new THREE.Vector3(),target=new THREE.Vector3();
   const eyeOffset=new THREE.Vector3(0,1.31,.14);
-  let active=false,rear=false,car=null,projection=null,interior=null;
+  let active=false,rear=false,car=null,projection=null,interior=null,mirrors=null;
   const hiddenHeads=[],glassOverrides=[];
 
   function restoreGlass(){
+    mirrors?.dispose();mirrors=null;
     if(interior){
       interior.removeFromParent();
       const materials=new Set();
@@ -28,7 +30,7 @@ export function createCarCockpit({camera,worker,getCar}={}){
     // Exterior models keep a low, simplified interior. A removable dashboard
     // closes the visible gap below the glass and brings the rim into eye view.
     const group=new THREE.Group();group.name='driver-cockpit-interior';
-    const seat=record.group.userData.driverSeat ?? new THREE.Vector3(-.34,-.095,.20);
+    const seat=record.group.userData.driverSeat ?? new THREE.Vector3(.34,-.095,.20);
     const eyeY=seat.y+eyeOffset.y,width=record.dimensions?.width ?? 1.8;
     const trim=new THREE.MeshStandardMaterial({color:0x252a2d,roughness:.9});
     const rimMaterial=new THREE.MeshStandardMaterial({color:0x40494e,roughness:.7});
@@ -65,6 +67,7 @@ export function createCarCockpit({camera,worker,getCar}={}){
       glassOverrides.push({object,original,replacement});object.material=replacement;
     });
     interior=driverInterior(record);
+    mirrors=createCarSideMirrors({camera,worker,record,renderer,scene});
   }
   function update(){
     if(!active)return false;
@@ -76,12 +79,13 @@ export function createCarCockpit({camera,worker,getCar}={}){
     // carLife reapplies helmet visibility with each seated pose.
     for(const {object} of hiddenHeads)object.visible=false;
     const group=selected.group,seat=group.userData.driverSeat;
-    eye.copy(seat?.isVector3?seat:new THREE.Vector3(-.34,-.095,.20)).add(eyeOffset);
+    eye.copy(seat?.isVector3?seat:new THREE.Vector3(.34,-.095,.20)).add(eyeOffset);
     target.copy(eye).add(new THREE.Vector3(0,-.07,rear?-1:1));
     group.updateWorldMatrix(true,false);group.localToWorld(eye);group.localToWorld(target);
     camera.position.copy(eye);camera.lookAt(target);
     camera.fov=72;camera.near=.025;camera.zoom=1;
     camera.clearViewOffset();camera.updateProjectionMatrix();
+    mirrors?.update(rear);
     return true;
   }
   function setActive(value){

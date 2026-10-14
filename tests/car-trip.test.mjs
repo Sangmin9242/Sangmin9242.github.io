@@ -25,6 +25,24 @@ function overlap(a,b) {
   return true;
 }
 if (createCarTrip) {
+  test('default driver boards the left side of a forward +Z car',()=>{
+    const trip=createCarTrip(cars[2]);trip.board();
+    while(trip.state.phase==='walking-out')trip.update(.01);
+    assert.ok(trip.state.worker.x>trip.state.car.x);
+    near(trip.state.worker.heading,-Math.PI/2);
+    while(trip.state.phase!=='door-closing')trip.update(.01);
+    assert.ok(trip.state.worker.x>trip.state.car.x);
+  });
+  test('direct parking handoff exits at the original bay without another outbound trip',()=>{
+    const trip=createCarTrip(cars[2]);trip.board();
+    trip.update(trip.phases.find(p=>p.name==='leaving-neck').start+1);
+    assert.equal(typeof trip.parked,'function');trip.parked(7.25);
+    assert.equal(trip.state.phase,'door-opening-exit');near(trip.state.car.x,-4);near(trip.state.car.z,22.45);
+    const phases=new Set();while(trip.isActive()){trip.update(.02);phases.add(trip.state.phase);near(trip.state.wheelAngle,7.25);}
+    assert.ok(phases.has('exiting'));assert.ok(phases.has('walking-home'));assert.ok(phases.has('complete'));
+    for(const phase of ['reversing','leaving','away','parking-turn'])assert.equal(phases.has(phase),false);
+    assert.equal(trip.board(),true);assert.equal(trip.state.phase,'walking-out');
+  });
   test('round trip walks, boards, closes door, drives, waits, parks and walks home', () => {
     const trip=createCarTrip(cars[2]), phases=new Set(); trip.board();
     let wait=0, last=structuredClone(trip.state), seated=false;

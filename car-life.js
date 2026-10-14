@@ -1,10 +1,11 @@
 import * as THREE from './vendor/three.module.js';
 import {roadOutline,driveway as D} from './driveway-layout.js?v=20261015-road-gallery';
-import {createCarDriving} from './car-driving.js?v=20261015-driving';
+import {createCarDriving} from './car-driving.js?v=20261015-drive-fix';
+import {createParkingReturn} from './car-parking-return.js?v=20261015-drive-fix';
 import {carDriveControls} from './car-drive-controls.js?v=20261015-driving';
 import {roadOutline as drivingOutline,forecourtPads,parkingLampPositions,parkingBollardPositions,drivewayLampSpecs} from './driveway-layout.js?v=20261015-road-lights';
 import { boardingAvatar } from './boarding-avatar.js?v=20261014-refined';
-import { createCarTrip } from './car-trip.js?v=20261015-road-gallery';
+import { createCarTrip } from './car-trip.js?v=20261015-drive-fix';
 
 const phaseText={
   'walking-out':['작업자가 차량으로 이동 중','Worker walking to the car'],
@@ -71,7 +72,7 @@ export function carLife({world,parking,container,getLanguage=()=> 'en',reducedMo
   const helmets=rig.upper.children.filter(object=>object.isMesh && object.material?.color?.getHex()===0xdfded3);
   const shoes=rig.legs.map(({knee})=>knee.children.find(object=>object.isMesh && object.geometry.type==='SphereGeometry'));
   const footBounds=new THREE.Box3();
-  let selectedCar=null, activeCar=null, following=false, poseTime=0, lastPhase='',manual=null,manualRequested=false,manualWheelOffset=0;
+  let selectedCar=null, activeCar=null, following=false, poseTime=0, lastPhase='',manual=null,manualRequested=false,manualWheelOffset=0,manualSpec=null,lastManualPhase='';
   const panel=document.createElement('aside');panel.id='car-panel';panel.className='car-panel';panel.hidden=true;panel.setAttribute('aria-labelledby','car-title');
   panel.innerHTML='<div class="car-panel-head"><span class="car-eyebrow">PARKING</span><button id="car-close" type="button" aria-label="Close car information">×</button></div><h2 id="car-title"></h2><p class="car-description" id="car-description"></p><div class="car-fleet" role="group"></div><div class="car-actions"><button id="car-board" type="button"></button><button id="car-drive-now" type="button" hidden></button><button id="car-return" type="button" hidden></button></div><label class="car-follow-label"><input id="car-follow" type="checkbox"><span id="car-follow-text"></span></label><p id="car-status" role="status" aria-live="polite"></p>';
   (container?.closest('.world') ?? document.querySelector('.world') ?? document.body).append(panel);
@@ -96,11 +97,11 @@ export function carLife({world,parking,container,getLanguage=()=> 'en',reducedMo
     query('#car-close').setAttribute('aria-label',ko?'차량 정보 닫기':'Close car information');
     fleet.setAttribute('aria-label',ko?'차량 선택':'Choose a vehicle');
     boardButton.textContent=ko?(activeCar?'운행 중':'탑승'):(activeCar?'Trip in progress':'Board');boardButton.disabled=!!activeCar || !selectedCar;
-    driveButton.hidden=!activeCar||!!manual;driveButton.disabled=manualRequested||!activeCar||['exiting','door-closing-exit','walking-home'].includes(s?.phase);driveButton.textContent=manualRequested?(ko?'운전 전환 준비 중':'Preparing direct drive'):(ko?'직접 운전':'Direct drive');
+    driveButton.hidden=!activeCar||!!manual&&manual.state.phase!=='blocked';driveButton.disabled=manualRequested||!activeCar||['door-opening-exit','exiting','door-closing-exit','walking-home'].includes(s?.phase);driveButton.textContent=manualRequested?(ko?'운전 전환 준비 중':'Preparing direct drive'):(ko?'직접 운전':'Direct drive');
     returnButton.textContent=ko?'지금 복귀':'Return now';returnButton.hidden=!!manual||s?.phase!=='away';
     query('#car-follow-text').textContent=ko?'작업자와 차량 따라가기':'Follow the worker and car';followInput.checked=following;followInput.disabled=typeof reducedMotion==='function'?reducedMotion():reducedMotion;
     for(const button of fleetButtons){button.disabled=!!activeCar && button.dataset.carId!==activeCar.id;button.setAttribute('aria-pressed',String(button.dataset.carId===selectedCar?.id));}
-    status.textContent=manual?(ko?'주행 경로를 따라 복귀 중':'Returning along your driving path'):(phaseText[s?.phase ?? 'idle'] ?? phaseText.idle)[lang];
+    status.textContent=manual?(manual.state.phase==='driving'?(ko?'직접 운전 중':'Driving'):manual.state.phase==='blocked'?(ko?'복귀할 공간이 부족합니다. 직접 운전으로 위치를 바꿔 주세요.':'No clear parking route. Select Direct drive to reposition.'):manual.state.planning?(ko?'현재 위치에서 주차자리까지 경로를 찾는 중':'Finding a route from here to the parking bay'):(ko?'원래 주차자리로 복귀 중':'Returning to the original parking bay')):(phaseText[s?.phase ?? 'idle'] ?? phaseText.idle)[lang];
     panel.dataset.phase=manual?manual.state.phase==='driving'?'manual-driving':'manual-returning':s?.phase ?? 'idle';
     driveControls.refresh(manual?.state);
     container.dataset.carDriving=String(manual?.state.phase==='driving');
@@ -119,7 +120,15 @@ export function carLife({world,parking,container,getLanguage=()=> 'en',reducedMo
     apply(trip.state);refresh();onBoard?.(activeCar.id);return true;
   }
   function requestDriving(){
-    if(!activeCar||manual)return false;manualRequested=true;
+    if(!activeCar)return false;
+    if(manual){
+      if(manual.state.phase!=='blocked')return false;
+      const candidate=createCarDriving({...manualSpec,car:{...manual.state.car}});
+      if(!candidate.canOccupy())return false;
+      manualWheelOffset+=manual.state.wheelAngle;manual=candidate;manualRequested=false;lastManualPhase='';
+      setFollow(false);driveControls.setActive(true);onDriving?.(true);refresh();return true;
+    }
+    manualRequested=true;
     const s=trips.get(activeCar.id).state;if(s.inside&&s.door<.001)startDriving();refresh();return true;
   }
   function startDriving(){
@@ -135,13 +144,19 @@ export function carLife({world,parking,container,getLanguage=()=> 'en',reducedMo
     activeCar.group.traverse(object=>{if(!object.isMesh)return;object.geometry.computeBoundingBox();partBounds.copy(object.geometry.boundingBox).applyMatrix4(inverse.clone().multiply(object.matrixWorld));modelBounds.union(partBounds);});
     const measured=modelBounds.getSize(new THREE.Vector3());
     // The pavement union keeps the driver clear of the research buildings and sports rooms.
-    const candidate=createCarDriving({car:{...checkpoint.car},...activeCar.dimensions,width:Math.max(activeCar.dimensions.width,measured.x),length:Math.max(activeCar.dimensions.length,measured.z),wheelbase:u.wheelbase,wheelRadius:u.wheelRadius,roadOutline:drivingOutline,forecourtPads,obstacles});
+    manualSpec={car:{...checkpoint.car},...activeCar.dimensions,width:Math.max(activeCar.dimensions.width,measured.x),length:Math.max(activeCar.dimensions.length,measured.z),wheelbase:u.wheelbase,wheelRadius:u.wheelRadius,roadOutline:drivingOutline,forecourtPads,obstacles};
+    const candidate=createCarDriving(manualSpec);
     if(!candidate.canOccupy())return false;
-    manual=candidate;manualRequested=false;setFollow(false);driveControls.setActive(true);onDriving?.(true);refresh();return true;
+    manual=candidate;manualRequested=false;lastManualPhase='';setFollow(false);driveControls.setActive(true);onDriving?.(true);refresh();return true;
   }
   function stopDriving(){
     if(!manual||manual.state.phase!=='driving')return false;
-    driveControls.setActive(false);manual.finish();onDriving?.(false);setFollow(true);refresh();return true;
+    driveControls.setActive(false);
+    const driving=manual,u=activeCar.group.userData,position=array(activeCar.position);
+    manualWheelOffset+=driving.state.wheelAngle;
+    const planningClearance=createCarDriving({...manualSpec,width:manualSpec.width+.08,length:manualSpec.length+.08});
+    manual=createParkingReturn({car:{...driving.state.car},target:{x:position[0],y:position[1],z:position[2],heading:0},wheelbase:u.wheelbase,wheelRadius:u.wheelRadius,canOccupy:driving.canOccupy,canPlanOccupy:planningClearance.canOccupy,roadOutline:drivingOutline,forecourtPads});
+    lastManualPhase='';onDriving?.(false);setFollow(true);refresh();return true;
   }
   function drivingState(){
     const s=trips.get(activeCar.id).state,d=manual.state,c=d.car,seat=activeCar.group.userData.driverSeat;
@@ -181,7 +196,9 @@ export function carLife({world,parking,container,getLanguage=()=> 'en',reducedMo
     if(manual){
       manual.update(dt);apply(drivingState());driveControls.refresh(manual.state);
       container.dataset.carDriving=String(manual.state.phase==='driving');container.dataset.drivingSpeed=String(manual.state.speed);container.dataset.drivingPosition=JSON.stringify([manual.state.car.x,manual.state.car.y,manual.state.car.z]);
-      if(manual.state.phase==='complete'){container.dataset.drivingReturnPosition=JSON.stringify([manual.state.car.x,manual.state.car.y,manual.state.car.z]);manual=null;apply(trip.state);setFollow(!(typeof reducedMotion==='function'?reducedMotion():reducedMotion));refresh();}
+      const phase=manual.state.phase+':'+!!manual.state.planning;
+      if(phase!==lastManualPhase){lastManualPhase=phase;refresh();}
+      if(manual.state.phase==='complete'){container.dataset.drivingReturnPosition=JSON.stringify([manual.state.car.x,manual.state.car.y,manual.state.car.z]);trip.parked(manual.state.wheelAngle+manualWheelOffset);manual=null;manualSpec=null;apply(trip.state);setFollow(!(typeof reducedMotion==='function'?reducedMotion():reducedMotion));refresh();}
       return;
     }
     if(manualRequested&&trip.state.inside&&trip.state.door<.001&&startDriving())return;

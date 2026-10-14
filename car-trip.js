@@ -12,17 +12,18 @@ export function createCarTrip(spec, options={}) {
   const parked={x:spec.x ?? spec.position?.[0] ?? 0, y:spec.y ?? spec.position?.[1] ?? -.075, z:spec.z ?? spec.position?.[2] ?? 22.45, heading:0};
   const width=spec.width ?? spec.dimensions?.width ?? 1.86;
   const radius=spec.wheelRadius ?? .33, wheelbase=spec.wheelbase ?? 2.8;
-  const entry=point(spec.driverEntry) ?? {x:-width/2-.55,y:-.06,z:.45};
-  const seat=point(spec.driverSeat) ?? {x:-.34,y:0,z:.2};
+  const entry=point(spec.driverEntry) ?? {x:width/2+.55,y:-.06,z:.45};
+  const seat=point(spec.driverSeat) ?? {x:.34,y:0,z:.2};
+  const entrySide=Math.sign(entry.x)||1,entryHeading=-entrySide*PI/2;
   const start={x:-1.6,y:.08,z:.1};
   const doorPoint={x:parked.x+entry.x,y:parked.y+entry.y,z:parked.z+entry.z};
   const seatPoint={x:parked.x+seat.x,y:parked.y+seat.y,z:parked.z+seat.z};
-  const portalX=parked.x-width/2-.7;
+  const portalX=parked.x+entrySide*(width/2+.7);
   const walk=[start,{x:-2.1,y:.08,z:.1},{x:-2.8,y:-.135,z:.1},{x:-4.5,y:-.135,z:.1},{x:-4.5,y:-.135,z:10},{x:portalX,y:-.135,z:10},{x:portalX,y:-.135,z:10.8},{x:portalX,y:-.075,z:11.2},{x:portalX,y:-.075,z:doorPoint.z},doorPoint];
   const walkLengths=walk.slice(1).map((p,i)=>distance(walk[i],p));
   const walkLength=walkLengths.reduce((a,b)=>a+b,0);
   const phases=[];
-  let end=0, driven=0, active=false, elapsed=0, waitShortened=false;
+  let end=0, driven=0, active=false, elapsed=0, waitShortened=false, parkedWheelAngle=null;
   function add(name,duration,sample,length=0) {
     const phase={name,start:end,duration,sample,driven,length};phases.push(phase);end+=duration;driven+=length;
   }
@@ -40,9 +41,9 @@ export function createCarTrip(spec, options={}) {
   }
   function driver(t,exiting=false) {
     const q=exiting?1-t:t, travel=ease((q-.2)/.8);
-    return {x:mix(doorPoint.x,seatPoint.x,travel),y:mix(doorPoint.y,seatPoint.y,travel),z:mix(doorPoint.z,seatPoint.z,travel),heading:mix(PI/2,0,ease(q)),walking:false,crouch:ease(q/.2)*.65*(1-ease((q-.45)/.55)),seated:ease((q-.35)/.65)};
+    return {x:mix(doorPoint.x,seatPoint.x,travel),y:mix(doorPoint.y,seatPoint.y,travel),z:mix(doorPoint.z,seatPoint.z,travel),heading:mix(entryHeading,0,ease(q)),walking:false,crouch:ease(q/.2)*.65*(1-ease((q-.45)/.55)),seated:ease((q-.35)/.65)};
   }
-  const outside=()=>({...doorPoint,heading:PI/2,walking:false,crouch:0,seated:0});
+  const outside=()=>({...doorPoint,heading:entryHeading,walking:false,crouch:0,seated:0});
   const seatedWorker=()=>({...seatPoint,heading:0,walking:false,crouch:0,seated:1});
   const still=(door,inside=false,worker=outside)=>()=>({door,inside,worker:worker()});
   const drive=(path,sign,steering=0)=>t=>({car:path(ease(t)),inside:true,door:0,worker:seatedWorker(),driveSign:sign,steering,rate:6*t*(1-t)});
@@ -77,7 +78,7 @@ export function createCarTrip(spec, options={}) {
   add('walking-home',walkLength/1.55,t=>({car:{...parked},worker:walkAt(t,true),door:0,inside:false}));
   const state={};
   function idle(phase='idle') {
-    Object.assign(state,{phase,elapsed,progress:phase==='complete'?1:0,car:{...parked},worker:{...start,heading:0,walking:false,crouch:0,seated:0},door:0,signedSpeed:0,wheelAngle:phase==='complete'?driven/radius:0,steering:0,inside:false,driverVisible:false,headlights:false,braking:false,reversing:false,active:false});
+    Object.assign(state,{phase,elapsed,progress:phase==='complete'?1:0,car:{...parked},worker:{...start,heading:0,walking:false,crouch:0,seated:0},door:0,signedSpeed:0,wheelAngle:phase==='complete'?(parkedWheelAngle??driven/radius):0,steering:0,inside:false,driverVisible:false,headlights:false,braking:false,reversing:false,active:false});
   }
   function sample() {
     if(elapsed>=end) {active=false;idle('complete');return;}
@@ -90,8 +91,8 @@ export function createCarTrip(spec, options={}) {
       Object.assign(worker,{x:vehicle.x+seat.x*c+seat.z*s,y:vehicle.y+seat.y,z:vehicle.z-seat.x*s+seat.z*c,heading:vehicle.heading});
     }
     const signedSpeed=values.driveSign?(Math.abs(phase.length)/phase.duration)*values.rate*values.driveSign:0;
-    Object.assign(state,{phase:phase.name,elapsed,progress:elapsed/end,car:vehicle,worker,door:values.door ?? 0,signedSpeed,wheelAngle:(phase.driven+phase.length*ease(t))/radius,steering:values.steering ?? 0,inside:!!values.inside,driverVisible:true,headlights:!!values.inside,braking:!!values.inside && (Math.abs(signedSpeed)<.05 || t>.72),reversing:signedSpeed<-.01,active:true});
+    Object.assign(state,{phase:phase.name,elapsed,progress:elapsed/end,car:vehicle,worker,door:values.door ?? 0,signedSpeed,wheelAngle:parkedWheelAngle??(phase.driven+phase.length*ease(t))/radius,steering:values.steering ?? 0,inside:!!values.inside,driverVisible:true,headlights:!!values.inside,braking:!!values.inside && (Math.abs(signedSpeed)<.05 || t>.72),reversing:signedSpeed<-.01,active:true});
   }
   idle();
-  return {state,duration:end,phases:phases.map(p=>({name:p.name,start:p.start,duration:p.duration})),board(){if(active)return false;active=true;elapsed=0;waitShortened=false;sample();return true;},update(dt,paused=false){if(!active||paused||!Number.isFinite(dt)||dt<=0)return state;elapsed=Math.min(end,elapsed+dt);sample();return state;},isActive(){return active;},reset(){active=false;elapsed=0;idle();},returnNow(){if(active&&state.phase==='away'&&!waitShortened){const wait=phases.find(p=>p.name==='away');elapsed=wait.start+wait.duration;waitShortened=true;sample();return true;}return false;}};
+  return {state,duration:end,phases:phases.map(p=>({name:p.name,start:p.start,duration:p.duration})),board(){if(active)return false;active=true;elapsed=0;waitShortened=false;parkedWheelAngle=null;sample();return true;},update(dt,paused=false){if(!active||paused||!Number.isFinite(dt)||dt<=0)return state;elapsed=Math.min(end,elapsed+dt);sample();return state;},isActive(){return active;},parked(wheelAngle=state.wheelAngle){if(!active)return false;parkedWheelAngle=Number.isFinite(wheelAngle)?wheelAngle:state.wheelAngle;elapsed=phases.find(p=>p.name==='door-opening-exit').start;sample();return true;},reset(){active=false;elapsed=0;parkedWheelAngle=null;idle();},returnNow(){if(active&&state.phase==='away'&&!waitShortened){const wait=phases.find(p=>p.name==='away');elapsed=wait.start+wait.duration;waitShortened=true;sample();return true;}return false;}};
 }

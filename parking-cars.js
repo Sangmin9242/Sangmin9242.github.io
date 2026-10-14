@@ -176,13 +176,13 @@ function body(parent, spec) {
   // Separate intervals put the door perimeter on exact shared vertices.
   for(let i=0;i<intervals.length-1;i++){
     const a=intervals[i],b=intervals[i+1];
-    const ranges=i===0||i===intervals.length-2?[[-1,1]]:i===2?[[.895,1]]:[[-1,-.895],[.895,1]];
+    const ranges=i===0||i===intervals.length-2?[[-1,1]]:i===2?[[-1,-.895]]:[[-1,-.895],[.895,1]];
     for(const [left,right]of ranges){
       const top=surface(parent,Math.max(3,Math.ceil((b-a)*14)),Math.max(2,Math.ceil((right-left)*9)),(u,v)=>bodyPoint(spec,THREE.MathUtils.lerp(a,b,u),THREE.MathUtils.lerp(left,right,v)),paint,'body',true);top.userData.bodySurface=true;
     }
   }
   for (const side of [-1,1]) {
-    const ranges=side<0?[[-l,door.rear],[door.front,l]]:[[-l,l]];
+    const ranges=side>0?[[-l,door.rear],[door.front,l]]:[[-l,l]];
     for(const [a,b]of ranges){const object=surface(parent,Math.ceil((b-a)*24),5,(u,v)=>sidePoint(spec,side,THREE.MathUtils.lerp(a,b,u),v),paint,'body-side',side<0);object.userData.bodySurface=true;}
     const radius = spec.radius + .035;
     for (const axle of [-spec.wheelbase/2,spec.wheelbase/2]) {
@@ -231,10 +231,10 @@ function cabin(parent,spec){
   const opening=parent.userData.doorOpening,door=parent.userData.driverDoor;
   surface(parent,44,16,(u,v)=>canopyTop(spec,THREE.MathUtils.lerp(first,last,u),v*2-1),paint,'cabin-roof',true);
   for(const side of [-1,1]){
-    const ranges=side<0?[[first,opening.rear],[opening.front,last]]:[[first,last]];
+    const ranges=side>0?[[first,opening.rear],[opening.front,last]]:[[first,last]];
     for(const [a,b]of ranges)canopyPanels(parent,spec,side,a,b);
     for(const [a,b] of spec.sideWindows){
-      const target=side<0&&a>=opening.rear?door:parent;
+      const target=side>0&&a>=opening.rear?door:parent;
       surface(target,16,5,(u,v)=>{const z=THREE.MathUtils.lerp(a,b,u),p=canopyAt(spec,z),belt=bodyPoint(spec,z,.895)[1]+.002,height=Math.max(.07,p.height-.063-belt),margin=Math.min(.20,.04/height);return canopySide(spec,side,z,THREE.MathUtils.lerp(margin,1-margin,v),.004);},windowGlass,'side-window',side<0);
       const upper=[],lower=[];for(let i=0;i<=22;i++){const z=THREE.MathUtils.lerp(a,b,i/22),p=canopyAt(spec,z),belt=bodyPoint(spec,z,.895)[1]+.002,height=Math.max(.07,p.height-.063-belt),margin=Math.min(.20,.04/height);upper.push(canopySide(spec,side,z,1-margin,.007));lower.push(canopySide(spec,side,z,margin,.007));}
       curve(target,[...upper,...lower.reverse()],.008,spec.kind==='tesla'?black:chrome,true);
@@ -243,19 +243,19 @@ function cabin(parent,spec){
     surface(parent,4,6,(u,v)=>canopySide(spec,side,bPillar+(u-.5)*.076,v,.007),black,'b-pillar',side<0);
     // Door seams are projected onto the curved panel, stopping at the sill.
     for(const door of [bPillar,spec.kind==='glc'?-1.20:-1.00,spec.roof.at(-1)[0]-.13]){
-      const points=[];for(let i=0;i<=12;i++){const t=i/12,z=door+.035*Math.sin(t*Math.PI);const p=bodyAt(spec,z),y=THREE.MathUtils.lerp(Math.max(.285,lowerEdge(spec,z)+.035),p.edge,t);points.push([side*(p.half+.008),y,z]);}seam(side<0&&door>opening.rear&&door<opening.front?parent.userData.driverDoor:parent,points);
+      const points=[];for(let i=0;i<=12;i++){const t=i/12,z=door+.035*Math.sin(t*Math.PI);const p=bodyAt(spec,z),y=THREE.MathUtils.lerp(Math.max(.285,lowerEdge(spec,z)+.035),p.edge,t);points.push([side*(p.half+.008),y,z]);}seam(side>0&&door>opening.rear&&door<opening.front?parent.userData.driverDoor:parent,points);
     }
     for(const z of [-.68,.57]){
-      const target=side<0&&z>opening.rear&&z<opening.front?door:parent;
+      const target=side>0&&z>opening.rear&&z<opening.front?door:parent;
       const p=bodyAt(spec,z),y=p.edge-.075,x=side*(p.half+.015);
       const handle=mesh(target,new THREE.SphereGeometry(1,12,6),spec.kind==='tesla'?darkAlloy:chrome,'door-handle');handle.position.set(x,y,z);handle.scale.set(.020,.020,.102);
       if(spec.kind!=='tesla')box(target,[.024,.024,.035],[x,y,z+.105],paint);
     }
     const mirrorZ=spec.kind==='glc'?.94:spec.kind==='tesla'?.96:.88,mirrorY=spec.belt+.10;
-    const mirrorParent=side<0?door:parent;
+    const mirrorParent=side>0?door:parent;
     rod(mirrorParent,[side*(spec.width*.44),mirrorY-.025,mirrorZ],[side*(spec.width/2+.10),mirrorY-.005,mirrorZ],.025,black);
     const mirror=mesh(mirrorParent,new THREE.SphereGeometry(1,14,8),paint,'mirror');mirror.scale.set(.128,.056,.105);mirror.position.set(side*(spec.width/2+.105),mirrorY+.025,mirrorZ);
-    const mirrorGlass=mesh(mirrorParent,new THREE.SphereGeometry(1,10,6),chrome);mirrorGlass.scale.set(.105,.037,.009);mirrorGlass.position.set(side*(spec.width/2+.105),mirrorY+.018,mirrorZ-.098);
+    const mirrorGlass=mesh(mirrorParent,new THREE.SphereGeometry(1,10,6),chrome,'side-mirror-glass');mirrorGlass.scale.set(.105,.037,.009);mirrorGlass.position.set(side*(spec.width/2+.105),mirrorY+.018,mirrorZ-.098);mirrorGlass.userData.sideMirror=side;
     const indicator=[];for(let i=0;i<=8;i++)indicator.push([side*(spec.width/2+.10+.12*Math.cos(i*Math.PI/8)),mirrorY+.017,mirrorZ+.095*Math.sin(i*Math.PI/8)]);curve(mirrorParent,indicator,.006,led);
   }
   for(const [name,range] of [['windshield',spec.frontGlass],['rear-window',spec.rearGlass]]){
@@ -414,7 +414,7 @@ function batchDetails(group){
   const batches=new Map(),lines=[];
   for(const object of [...group.children]){
     if(object.isLine&&!object.isLineSegments){lines.push(object);continue;}
-    if(!object.isMesh||object.material.transparent||object.userData.plate||object.userData.manufacturerEmblem)continue;
+    if(!object.isMesh||object.material.transparent||object.userData.plate||object.userData.manufacturerEmblem||object.userData.sideMirror)continue;
     const key=object.material.uuid+(object.userData.bodySurface?object.name:'');if(!batches.has(key))batches.set(key,[]);batches.get(key).push(object);
   }
   for(const objects of batches.values()){
@@ -438,24 +438,24 @@ function batchDetails(group){
 }
 function driverDoor(parent,spec){
   const rear=(spec.kind==='accent'?-.04:-.135)+.038,front=spec.sideWindows.at(-1)[1]+.025;
-  const hinge=new THREE.Vector3(-bodyAt(spec,front).half,.65,front),door=new THREE.Group();door.name='driver-front-door';parent.add(door);
+  const hinge=new THREE.Vector3(bodyAt(spec,front).half,.65,front),door=new THREE.Group();door.name='driver-front-door';parent.add(door);
   parent.userData.doorOpening={rear,front};parent.userData.driverDoor=door;
-  surface(door,24,7,(u,v)=>sidePoint(spec,-1,THREE.MathUtils.lerp(rear,front,u),v),paint,'driver-door-skin',true);
-  surface(door,24,3,(u,v)=>bodyPoint(spec,THREE.MathUtils.lerp(rear,front,u),THREE.MathUtils.lerp(-1,-.895,v)),paint,'driver-door-shoulder',true);
-  canopyPanels(door,spec,-1,rear,front,'driver-door-window-frame');
-  const lining=surface(door,24,6,(u,v)=>sidePoint(spec,-1,THREE.MathUtils.lerp(rear,front,u),v,-.042),well,'driver-door-inner-trim');lining.castShadow=false;
+  surface(door,24,7,(u,v)=>sidePoint(spec,1,THREE.MathUtils.lerp(rear,front,u),v),paint,'driver-door-skin');
+  surface(door,24,3,(u,v)=>bodyPoint(spec,THREE.MathUtils.lerp(rear,front,u),THREE.MathUtils.lerp(.895,1,v)),paint,'driver-door-shoulder',true);
+  canopyPanels(door,spec,1,rear,front,'driver-door-window-frame');
+  const lining=surface(door,24,6,(u,v)=>sidePoint(spec,1,THREE.MathUtils.lerp(rear,front,u),v,-.042),well,'driver-door-inner-trim');lining.castShadow=false;
   const rearEdge=[],frontEdge=[],bottom=[],top=[];
   for(let i=0;i<=16;i++){
     const t=i/16,z=THREE.MathUtils.lerp(rear,front,t);
-    bottom.push(sidePoint(spec,-1,z,0));top.push(canopySide(spec,-1,z,1));
+    bottom.push(sidePoint(spec,1,z,0));top.push(canopySide(spec,1,z,1));
     for(const [edge,at]of[[rearEdge,rear],[frontEdge,front]]){
-      if(i<=8)edge.push(sidePoint(spec,-1,at,t*2));else edge.push(canopySide(spec,-1,at,(t-.5)*2));
+      if(i<=8)edge.push(sidePoint(spec,1,at,t*2));else edge.push(canopySide(spec,1,at,(t-.5)*2));
     }
   }
   // Fixed rubber jamb and sill frame the same perimeter as the moving panel.
-  for(const edge of[rearEdge,frontEdge,bottom,top])curve(parent,edge.map(([x,y,z])=>[x+.015,y,z]),.014,black);
+  for(const edge of[rearEdge,frontEdge,bottom,top])curve(parent,edge.map(([x,y,z])=>[x-.015,y,z]),.014,black);
   for(const edge of[rearEdge,frontEdge,bottom,top])curve(door,edge,.006,black);
-  const armrest=box(door,[.075,.045,.45],[-bodyAt(spec,.44).half+.08,.63,.35],black,'door-armrest');armrest.rotation.y=.015;
+  const armrest=box(door,[.075,.045,.45],[bodyAt(spec,.44).half-.08,.63,.35],black,'door-armrest');armrest.rotation.y=-.015;
   parent.userData.doorHinge=hinge;
   return door;
 }
@@ -473,12 +473,12 @@ function interior(parent,spec){
   box(interior,[1.20,.36,.10],[0,seatY+.21,-1.06],upholstery,'rear-seat-back');
   box(interior,[.18,.22,.68],[0,seatY-.08,.27],black,'center-console');
   box(interior,[spec.width*.71,.18,.22],[0,spec.belt-.18,.79],black,'dashboard');
-  const steering=mesh(interior,new THREE.TorusGeometry(.14,.017,6,20),black,'steering-wheel');steering.position.set(-.34,seatY+.39,.59);steering.rotation.x=-.30;
-  for(const side of[-1,1])rod(interior,[-.34,seatY+.39,.59],[-.34+side*.105,seatY+.355,.60],.013,darkAlloy);
-  rod(interior,[-.34,seatY+.39,.59],[-.34,seatY+.31,.61],.014,darkAlloy);
+  const steering=mesh(interior,new THREE.TorusGeometry(.14,.017,6,20),black,'steering-wheel');steering.position.set(.34,seatY+.39,.59);steering.rotation.x=-.30;
+  for(const side of[-1,1])rod(interior,[.34,seatY+.39,.59],[.34+side*.105,seatY+.355,.60],.013,darkAlloy);
+  rod(interior,[.34,seatY+.39,.59],[.34,seatY+.31,.61],.014,darkAlloy);
   batchDetails(interior);
-  parent.userData.driverEntry=new THREE.Vector3(-spec.width/2-.55,0,.45);
-  parent.userData.driverSeat=new THREE.Vector3(-.34,seatY-.495,.20);
+  parent.userData.driverEntry=new THREE.Vector3(spec.width/2+.55,0,.45);
+  parent.userData.driverSeat=new THREE.Vector3(.34,seatY-.495,.20);
 }
 function finishAnimation(parent,spec,wheels){
   const door=parent.userData.driverDoor,hinge=parent.userData.doorHinge;
@@ -487,7 +487,7 @@ function finishAnimation(parent,spec,wheels){
   parent.userData.wheels=wheels;parent.userData.wheelRadius=spec.radius;
   parent.userData.setDoor=(progress)=>{
     const value=THREE.MathUtils.clamp(Number.isFinite(progress)?progress:0,0,1);
-    door.rotation.y=value*Math.PI*.39;parent.userData.doorOpen=value;
+    door.rotation.y=-value*Math.PI*.39;parent.userData.doorOpen=value;
   };
   parent.userData.setDrive=({wheelAngle=0,steering=0,headlights=false,braking=false,reversing=false}={})=>{
     for(const wheel of wheels){wheel.spin.rotation.x=Number.isFinite(wheelAngle)?wheelAngle:0;wheel.pivot.rotation.y=wheel.front?THREE.MathUtils.clamp(steering,-.52,.52):0;}

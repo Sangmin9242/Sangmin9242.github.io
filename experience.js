@@ -3,8 +3,8 @@ import {sangsangHall} from './sangsang-hall.js?v=20261015-campus';
 import {campusLab} from './campus-lab.js?v=20261015-campus';
 import {forecourtPads} from './driveway-layout.js?v=20261015-road-gallery';
 import { sitePet } from './site-pet.js?v=20261015-road-gallery';
-import {createCarCockpit} from './car-cockpit.js?v=20261015-driving';
-import { carLife } from './car-life.js?v=20261015-driving';
+import {createCarCockpit} from './car-cockpit.js?v=20261015-drive-fix';
+import { carLife } from './car-life.js?v=20261015-drive-fix';
 import { surface, daylightEnvironment, screenTexture, pbrTextures } from './scene-materials.js';
 import { sprayRobot } from './spray-robot.js?v=20261014-coating';
 import { airplane } from './airplane.js?v=20261014-strut';
@@ -14,7 +14,7 @@ import { trainBoarding } from './train-boarding.js';
 import { conferenceJourney } from './conference-journey.js?v=20261014-easy';
 import { hobbyWorld } from './hobby-world.js?v=20261015-road-gallery';
 import { sportsPlay } from './sports-play.js?v=20261014-easy';
-import { parkingCars } from './parking-cars.js?v=20261015-road-gallery';
+import { parkingCars } from './parking-cars.js?v=20261015-drive-fix';
 import { researchOffice } from './research-office.js';
 import { responsiveLabels } from './responsive-labels.js';
 import { boardingAvatar } from './boarding-avatar.js?v=20261014-easy';
@@ -334,7 +334,7 @@ function createScene() {
   const pet=sitePet({world,camera,container,reducedMotion:reduceMotion,getLanguage:()=>lang,onClose:()=>closePet()});
   let cockpit=null;
   const carMotion=carLife({world,parking,camera,container,getLanguage:()=>lang,reducedMotion:reduceMotion,getExtraObstacles:()=>[{x:pet.state.x,z:pet.state.z,width:.65,length:.7,heading:pet.state.heading}],onDriving:value=>{cockpit?.setActive(value);if(value){carFollowing=false;autoRotate=false;officeMode=false;skyMode=false;pointers.clear();drag=false;document.querySelector('#rotate').setAttribute('aria-pressed','false');}else if(carFocus){carView();lookAt.copy(targetLook);angle=targetAngle;pitch=targetPitch;distance=targetDistance;}},onRear:value=>cockpit?.setRearView(value),onSelect:carSelected,onClose:()=>closeCar(),onBoard:()=>{carFollowing=!reduceMotion;if(carFollowing)startCarFollow();},onFollow:value=>{carFollowing=value;if(value)startCarFollow();},onComplete:()=>{carFollowing=false;if(carFocus)carView();}});
-  cockpit=createCarCockpit({camera,worker:carMotion.getWorker(),getCar:carMotion.selected});
+  cockpit=createCarCockpit({camera,renderer,scene,worker:carMotion.getWorker(),getCar:carMotion.selected});
   const carFollowLast=new THREE.Vector3();
   const hotspotAnchors={sangsang:hall.anchor,parking:new THREE.Vector3(-4,1.8,22.45),pet:pet.anchor,robotics:new THREE.Vector3(-.8,2.7,3.4),vision:new THREE.Vector3(7.4,3.8,5),digital:new THREE.Vector3(3,8.4,1.8),avatar:new THREE.Vector3(-7.8,2.8,5.25),airplane:new THREE.Vector3(-44,2.7,-3),train:new THREE.Vector3(-23,2.8,-3)};
   researcher.updateMatrixWorld(true);for(const [kind,object] of Object.entries(officeObjects)){hotspotAnchors[kind]=object.localToWorld(new THREE.Vector3(0,kind==='awards'?.4:1.5,0));}

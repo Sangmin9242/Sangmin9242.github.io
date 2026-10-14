@@ -56,7 +56,15 @@ if(createCarDriving){
     const forward=createCarDriving(spec),reverse=createCarDriving(spec),still=createCarDriving(spec);
     still.setInput({steer:1});run(still,2);near(still.state.car.heading,0);near(still.state.car.x,0);
     forward.setInput({throttle:1,steer:1});reverse.setInput({throttle:-1,steer:1});run(forward,1);run(reverse,1);
-    assert.ok(forward.state.car.heading>0&&forward.state.car.x>0);assert.ok(reverse.state.car.heading<0&&reverse.state.car.x>0);
+    assert.ok(forward.state.car.heading<0&&forward.state.car.x<0);assert.ok(reverse.state.car.heading>0&&reverse.state.car.x<0);
+  });
+  test('right and left steering match the driver view at each compass heading',()=>{
+    for(const heading of [0,Math.PI/2,Math.PI,-Math.PI/2])for(const steer of [-1,1]){
+      const d=createCarDriving({...spec,car:{x:0,y:-.075,z:0,heading}});
+      d.setInput({throttle:1,steer});run(d,.8);
+      const rightward=-Math.cos(heading)*d.state.car.x+Math.sin(heading)*d.state.car.z;
+      assert.ok(rightward*steer>0,'positive right input must move toward the camera right');
+    }
   });
   test('road boundary rejects an entire car footprint before its centre leaves',()=>{
     const d=createCarDriving({...spec,roadOutline:[[-5,-10],[5,-10],[5,10],[-5,10]]});d.setInput({throttle:1});run(d,6);
