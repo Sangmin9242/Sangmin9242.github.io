@@ -9,7 +9,7 @@ import { boardingAvatar } from './boarding-avatar.js?v=20261014-refined';
 import { constructionWorkers } from './construction-workers.js?v=20261014-refined';
 import { boardingSequence } from './boarding-sequence.js?v=20261014-refined';
 import { createRecordViewer } from './record-viewer.js';
-import { seoulEnvironment } from './seoul-environment.js?v=20261014-runwaylights';
+import { seoulEnvironment } from './seoul-environment.js?v=20261014-clearview';
 
 const text = {
   en: { introLabel:'Construction, in motion', headline:'The site is<br>my laboratory.', intro:'I connect construction-site data with digital technologies to study safer and more efficient ways to build.', explore:'Explore the site <span>↓</span>', about:'About', publications:'Publications', robotics:'Construction robotics', vision:'Computer vision', digital:'Digital construction', roboticsTag:'From motion to execution', visionTag:'From pixels to perception', digitalTag:'From data to the field', sceneLabel:'A field of possibilities', rotate:'Rotate view', reset:'Reset view', hint:'Drag to look around · Select a research point', student:"Master’s student · SeoulTech", projects:'R&D projects', ip:'Patents & software', awards:'Awards', contact:'Get in touch ↗', fallback:'Explore the research areas below.', kind:'Research', related:'Related publications', all:'All publications', cv:'Full CV', loading:'Loading…', loadError:'Please open the full CV to view these records.', roboticsDescription:'Robotic fireproofing spray connects motion planning, spray quality, and the realities of a construction site. My work explores work-area recognition and simulation for robotic execution.', visionDescription:'A camera sees pixels. A robot needs surfaces it can work on. My research uses RGB and RGB-D images to recognize steel members and classify work surfaces for fireproofing spray.', digitalDescription:'From construction inspection to human–robot collaboration, I explore how field data and digital models can support automated construction processes.' },
@@ -43,6 +43,7 @@ function setLanguage(next) {
   document.querySelector('#avatar-link').href = lang === 'ko' ? 'ko.html' : 'index.html';
   document.querySelector('#avatar-label').textContent = lang === 'ko' ? '이상민 · CV' : 'Sangmin Lee · CV';
   document.querySelector('#close-panel').setAttribute('aria-label', lang === 'ko' ? '상세 내용 닫기' : 'Close details');
+  document.querySelector('#sky-view').textContent=lang==='ko'?'하늘 보기':'View sky';
   document.querySelector('#zoom-in').setAttribute('aria-label',lang==='ko'?'확대':'Zoom in');
   document.querySelector('#zoom-out').setAttribute('aria-label',lang==='ko'?'축소':'Zoom out');
   document.title = lang === 'ko' ? '이상민 — 현장에서 시작하는 연구' : 'Sangmin Lee — Construction, in motion';
@@ -125,6 +126,7 @@ document.querySelector('#close-panel').onclick=closePanel;
 document.querySelector('#explore').onclick=()=>openPanel('robotics');
 document.querySelector('#office-explore').onclick=()=>sceneAPI?.office();
 document.querySelector('#reset').onclick=()=>{ closePanel(); sceneAPI?.reset(); };
+document.querySelector('#sky-view').onclick=()=>sceneAPI?.skyView();
 document.querySelector('#zoom-in').onclick=()=>sceneAPI?.zoom(.82);
 document.querySelector('#zoom-out').onclick=()=>sceneAPI?.zoom(1.22);
 function enterJourney(){if(departing||journeyOpen)return;closePanel();departing=true;document.querySelector('#departure-skip').hidden=false;document.querySelectorAll('.masthead nav button').forEach(b=>b.disabled=true);document.body.classList.add('departing');document.querySelector('.hotspots').inert=true;document.querySelector('.research-controls').inert=true;sceneAPI?.depart(()=>{departing=false;document.querySelector('#departure-skip').hidden=true;document.querySelectorAll('.masthead nav button').forEach(b=>b.disabled=false);document.body.classList.remove('departing');document.querySelector('.hotspots').inert=false;document.querySelector('.research-controls').inert=false;journeyOpen=true;document.body.classList.add('journey-open');sceneAPI.enterJourney();document.querySelector('#journey-back').focus({preventScroll:true});});}
@@ -144,7 +146,7 @@ recordViewer=createRecordViewer({sourceDocument,getLanguage:()=>lang,onLanguage:
 
 function createScene() {
   const container=document.querySelector('#scene');
-  const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x233744,.015);
+  const scene=new THREE.Scene(); scene.fog=new THREE.FogExp2(0x233744,.0035);
   const renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,powerPreference:'low-power'});
   renderer.setPixelRatio(Math.min(devicePixelRatio,1.75)); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.outputColorSpace=THREE.SRGBColorSpace; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.05; container.append(renderer.domElement);
   const environment=daylightEnvironment(renderer);scene.environment=environment.texture;
@@ -162,7 +164,8 @@ function createScene() {
   function roundedBox(parent,size,position,color,radius=.07){const [w,h,d]=size;const r=Math.min(radius,w/4,h/4,d/4);const x=-w/2+r,y=-h/2+r;const shape=new THREE.Shape();shape.moveTo(x,y-r);shape.lineTo(x+w-2*r,y-r);shape.quadraticCurveTo(x+w-r,y-r,x+w-r,y);shape.lineTo(x+w-r,y+h-2*r);shape.quadraticCurveTo(x+w-r,y+h-r,x+w-2*r,y+h-r);shape.lineTo(x,y+h-r);shape.quadraticCurveTo(x-r,y+h-r,x-r,y+h-2*r);shape.lineTo(x-r,y);shape.quadraticCurveTo(x-r,y-r,x,y-r);const geo=new THREE.ExtrudeGeometry(shape,{depth:d-2*r,bevelEnabled:true,bevelSegments:3,steps:1,bevelSize:r*.4,bevelThickness:r,curveSegments:6});geo.translate(0,0,-d/2+r);const mesh=new THREE.Mesh(geo,material(color));mesh.position.set(...position);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;}
   function beam(parent,start,end,radius,color){const a=new THREE.Vector3(...start),b=new THREE.Vector3(...end);const mesh=cylinder(parent,radius,a.distanceTo(b),a.clone().add(b).multiplyScalar(.5).toArray(),color);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),b.sub(a).normalize());return mesh;}
   function line(parent,points,color,opacity=1){const geo=new THREE.BufferGeometry().setFromPoints(points.map(p=>new THREE.Vector3(...p)));const mesh=new THREE.Line(geo,new THREE.LineBasicMaterial({color,transparent:opacity<1,opacity}));parent.add(mesh);return mesh;}
-  const ground=new THREE.Mesh(new THREE.PlaneGeometry(500,500),new THREE.MeshStandardMaterial({color:0xb0a493,...soilPBR,normalScale:new THREE.Vector2(.8,.8),roughness:1,envMapIntensity:.3}));ground.rotation.x=-Math.PI/2;ground.position.y=-.135;ground.receiveShadow=true;world.add(ground);
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(500,500),new THREE.MeshStandardMaterial({color:0xb0a493,...soilPBR,normalScale:new THREE.Vector2(.8,.8),roughness:1,envMapIntensity:.3}));ground.rotation.x=-Math.PI/2;ground.position.y=-.135;ground.receiveShadow=true;
+  ground.material.transparent=true;ground.material.onBeforeCompile=shader=>{shader.vertexShader='varying float terrainRadius;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nterrainRadius=length(position.xy);');shader.fragmentShader='varying float terrainRadius;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>','diffuseColor.a*=1.-smoothstep(180.,245.,terrainRadius);\n#include <opaque_fragment>');};world.add(ground);
   box(world,[16,.04,70],[-23,-.115,0],0x3d4141,{map:surface('asphalt'),bumpScale:.02});
   for(const x of [-30.9,-15.1])box(world,[.065,.012,69],[x,-.079,0],0xe3e5df);
   for(let z=-29;z<31;z+=3.5)box(world,[.085,.012,1.7],[-23,-.079,z],0xe3e5df);
@@ -269,22 +272,29 @@ function createScene() {
   const hotspotAnchors={robotics:new THREE.Vector3(-.8,2.7,3.4),vision:new THREE.Vector3(7.4,3.8,5),digital:new THREE.Vector3(3,8.4,1.8),avatar:new THREE.Vector3(-7.8,2.8,5.25),airplane:new THREE.Vector3(-23,2.7,-3)};
   researcher.updateMatrixWorld(true);for(const [kind,object] of Object.entries(officeObjects)){hotspotAnchors[kind]=object.localToWorld(new THREE.Vector3(0,kind==='awards'?.4:1.5,0));}
   const hotspotButtons=[...document.querySelectorAll('.hotspot')];
-  let width=1,height=1,mobile=false,officeMode=false,autoRotate=false,drag=false,moved=false,angle=.61,targetAngle=.61,pitch=.52,targetPitch=.52,distance=42,targetDistance=42;
+  let width=1,height=1,mobile=false,officeMode=false,skyMode=false,autoRotate=false,drag=false,moved=false,angle=.61,targetAngle=.61,pitch=.52,targetPitch=.52,distance=42,targetDistance=42;
   const lookAt=new THREE.Vector3(-4,4,8),targetLook=new THREE.Vector3(-4,4,8);
   const journey=conferenceJourney({scene,sourceDocument,getLanguage:()=>lang,reducedMotion:reduceMotion,onSelect(event){const desired=THREE.MathUtils.degToRad(event.lon);targetAngle+=Math.atan2(Math.sin(desired-targetAngle),Math.cos(desired-targetAngle));targetPitch=THREE.MathUtils.degToRad(event.lat)*.8;targetDistance=mobile?12:13;targetLook.copy(journey.center);}});
-  function reset(){officeMode=false;if(journeyOpen){journey.select(document.querySelector('#journey-view').dataset.conference);autoRotate=false;}else{targetAngle=.61;targetPitch=.52;targetDistance=mobile?50:42;targetLook.set(mobile?-3:-5,4,0);autoRotate=false;}document.querySelector('#rotate').setAttribute('aria-pressed','false');}
+  function reset(){officeMode=false;skyMode=false;if(journeyOpen){journey.select(document.querySelector('#journey-view').dataset.conference);autoRotate=false;}else{targetAngle=.61;targetPitch=.52;targetDistance=mobile?50:42;targetLook.set(mobile?-3:-5,4,0);autoRotate=false;}document.querySelector('#rotate').setAttribute('aria-pressed','false');}
+  function skyView(){
+    if(journeyOpen||departure)return;officeMode=false;skyMode=true;autoRotate=false;
+    const data=container.dataset,key=data.skySunVisible==='true'?'sunPosition':data.skyMoonVisible==='true'?'moonPosition':null;
+    const point=key?new THREE.Vector3(...JSON.parse(data[key])):new THREE.Vector3(0,100,-800),direction=point.normalize();
+    targetAngle=Math.atan2(-direction.x,-direction.z);targetPitch=-Math.asin(direction.y);targetDistance=mobile?50:42;targetLook.set(-5,8-Math.sin(targetPitch)*targetDistance,0);
+    document.querySelector('#rotate').setAttribute('aria-pressed','false');
+  }
   function zoom(factor){targetDistance=THREE.MathUtils.clamp(targetDistance*factor,journeyOpen?8:officeMode?3:9,journeyOpen?22:110);}
-  function calendarFocus(){officeMode=true;targetAngle=.12;targetPitch=.12;targetDistance=4.8;targetLook.copy(seoulLive.calendarPosition());autoRotate=false;}
-  function focus(kind){const point=hotspotAnchors[kind]||new THREE.Vector3(1,5,0);officeMode=false;const room=!!officeObjects[kind];targetAngle=room?.12:.5;targetPitch=room?.28:.4;targetDistance=room?10:kind==='robotics'?11:kind==='vision'?23:31;targetLook.copy(point).add(new THREE.Vector3(room?3:kind==='robotics'?3.5:9,0,0));autoRotate=false;}
+  function calendarFocus(){skyMode=false;officeMode=true;targetAngle=.12;targetPitch=.12;targetDistance=4.8;targetLook.copy(seoulLive.calendarPosition());autoRotate=false;}
+  function focus(kind){skyMode=false;const point=hotspotAnchors[kind]||new THREE.Vector3(1,5,0);officeMode=false;const room=!!officeObjects[kind];targetAngle=room?.12:.5;targetPitch=room?.28:.4;targetDistance=room?10:kind==='robotics'?11:kind==='vision'?23:31;targetLook.copy(point).add(new THREE.Vector3(room?3:kind==='robotics'?3.5:9,0,0));autoRotate=false;}
   function finishDeparture(){if(!departure)return;const done=departure.done;departure=null;boarding.animate(boarding.duration);skyFade.style.transition='none';skyFade.style.opacity='1';done();skyFade.getBoundingClientRect();skyFade.style.transition='opacity .8s ease-out';skyFade.style.opacity='0';}
-  function office(){officeMode=true;targetAngle=.12;targetPitch=.32;targetDistance=mobile?11:10;targetLook.set(-7.8,1.35,5.25);autoRotate=false;}
+  function office(){skyMode=false;officeMode=true;targetAngle=.12;targetPitch=.32;targetDistance=mobile?11:10;targetLook.set(-7.8,1.35,5.25);autoRotate=false;}
   function resize(){width=container.clientWidth;height=container.clientHeight;mobile=width<=600;renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix();reset();if(mobile){lookAt.copy(targetLook);distance=targetDistance;}if(currentPanel)focus(currentPanel);}
   const observer=new ResizeObserver(resize);observer.observe(container);
   const pointers=new Map();let pinchDistance=0,dragTravel=0;
   function pan(dx,dy){const scale=2*targetDistance*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))/Math.max(height,1);const right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion);targetLook.addScaledVector(right,-dx*scale).addScaledVector(up,dy*scale);}
   renderer.domElement.addEventListener('contextmenu',event=>event.preventDefault());
   renderer.domElement.addEventListener('pointerdown',event=>{if(departing||event.button>2)return;drag=true;if(!pointers.size){moved=false;dragTravel=0;}pointers.set(event.pointerId,{x:event.clientX,y:event.clientY,pan:event.button===2||event.button===1});if(pointers.size===2){const [a,b]=[...pointers.values()];pinchDistance=Math.hypot(a.x-b.x,a.y-b.y);moved=true;}renderer.domElement.setPointerCapture(event.pointerId);});
-  renderer.domElement.addEventListener('pointermove',event=>{const last=pointers.get(event.pointerId);if(!last)return;const before=[...pointers.values()];const dx=event.clientX-last.x,dy=event.clientY-last.y;pointers.set(event.pointerId,{x:event.clientX,y:event.clientY,pan:last.pan});dragTravel+=Math.hypot(dx,dy);if(dragTravel>5)moved=true;if(pointers.size===2){const [a,b]=[...pointers.values()],next=Math.hypot(a.x-b.x,a.y-b.y);pan((a.x+b.x-before[0].x-before[1].x)/2,(a.y+b.y-before[0].y-before[1].y)/2);if(next>0&&pinchDistance>0)zoom(pinchDistance/next);pinchDistance=next;}else if(last.pan){pan(dx,dy);}else{targetAngle-=dx*.005;targetPitch=THREE.MathUtils.clamp(targetPitch+dy*.005,-.45,1.48);}});
+  renderer.domElement.addEventListener('pointermove',event=>{const last=pointers.get(event.pointerId);if(!last)return;const before=[...pointers.values()];const dx=event.clientX-last.x,dy=event.clientY-last.y;pointers.set(event.pointerId,{x:event.clientX,y:event.clientY,pan:last.pan});dragTravel+=Math.hypot(dx,dy);if(dragTravel>5)moved=true;if(pointers.size===2){const [a,b]=[...pointers.values()],next=Math.hypot(a.x-b.x,a.y-b.y);pan((a.x+b.x-before[0].x-before[1].x)/2,(a.y+b.y-before[0].y-before[1].y)/2);if(next>0&&pinchDistance>0)zoom(pinchDistance/next);pinchDistance=next;}else if(last.pan){pan(dx,dy);}else{targetAngle-=dx*.005;targetPitch=THREE.MathUtils.clamp(targetPitch+dy*.005,skyMode?-1.45:-.45,1.48);}});
   function release(event){pointers.delete(event.pointerId);drag=pointers.size>0;pinchDistance=0;if(renderer.domElement.hasPointerCapture(event.pointerId))renderer.domElement.releasePointerCapture(event.pointerId);}
   renderer.domElement.addEventListener('pointerup',release);renderer.domElement.addEventListener('pointercancel',release);
   document.querySelector('.world').addEventListener('wheel',event=>{if(departing){event.preventDefault();return;}if(event.target.closest('.journey-card,.research-controls,.journey-stops,.hero-intro'))return;event.preventDefault();zoom(Math.exp(THREE.MathUtils.clamp(event.deltaY,-300,300)*.0015));},{passive:false});
@@ -293,6 +303,7 @@ function createScene() {
   let previous=performance.now();
   function animate(now){const delta=Math.min((now-previous)/1000,.05);previous=now;const t=now/1000;
     if(autoRotate&&!drag&&!currentPanel)targetAngle+=delta*.1;
+    if(skyMode)targetLook.y=8-Math.sin(targetPitch)*targetDistance;
     const factor=reduceMotion?1:1-Math.exp(-delta*4.5);angle=THREE.MathUtils.lerp(angle,targetAngle,factor);pitch=THREE.MathUtils.lerp(pitch,targetPitch,factor);distance=THREE.MathUtils.lerp(distance,targetDistance,factor);lookAt.lerp(targetLook,factor);
     camera.position.set(lookAt.x+Math.sin(angle)*Math.cos(pitch)*distance,lookAt.y+Math.sin(pitch)*distance,lookAt.z+Math.cos(angle)*Math.cos(pitch)*distance);camera.lookAt(lookAt);
     if(journeyOpen&&!mobile)camera.setViewOffset(width,height,width*.15,0,width,height);else if(officeMode&&!mobile)camera.setViewOffset(width,height,-width*.18,0,width,height);else if(mobile&&!journeyOpen)camera.setViewOffset(width,height,0,-height*.015,width,height);else camera.clearViewOffset();
@@ -310,6 +321,6 @@ function createScene() {
   }
   renderer.setAnimationLoop(animate);resize();lookAt.copy(targetLook);
   renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();document.querySelector('.scene-fallback').hidden=false;document.querySelector('#hotspots').hidden=true;});
-  return {reset,focus,zoom,office,finishDeparture,refreshEnvironment:seoulLive.refresh,sprayRunning:sprayer.isRunning,sprayToggle:sprayer.toggle,resetCoating:sprayer.resetCoating,isOffice(){return officeMode;},rotate(value){autoRotate=value;},depart(done){autoRotate=false;if(reduceMotion){done();return;}boarding.start();skyFade.style.transition='none';departure={started:performance.now()/1000,camera:camera.position.clone(),look:lookAt.clone(),done};},refreshJourney(){journey.render();},enterJourney(){world.visible=false;scene.fog=null;journey.open();angle=targetAngle;pitch=targetPitch;distance=targetDistance;lookAt.copy(targetLook);},exitJourney(){journey.close();boarding.reset();parkedPlane.position.set(-23,-.06,-3);parkedPlane.rotation.set(0,0,0);parkedPlane.userData.setGear(0);world.visible=true;scene.fog=new THREE.FogExp2(0x233744,.015);reset();}};
+  return {reset,focus,zoom,office,skyView,finishDeparture,refreshEnvironment:seoulLive.refresh,sprayRunning:sprayer.isRunning,sprayToggle:sprayer.toggle,resetCoating:sprayer.resetCoating,isOffice(){return officeMode;},rotate(value){autoRotate=value;},depart(done){autoRotate=false;if(reduceMotion){done();return;}boarding.start();skyFade.style.transition='none';departure={started:performance.now()/1000,camera:camera.position.clone(),look:lookAt.clone(),done};},refreshJourney(){journey.render();},enterJourney(){world.visible=false;scene.fog=null;journey.open();angle=targetAngle;pitch=targetPitch;distance=targetDistance;lookAt.copy(targetLook);},exitJourney(){journey.close();boarding.reset();parkedPlane.position.set(-23,-.06,-3);parkedPlane.rotation.set(0,0,0);parkedPlane.userData.setGear(0);world.visible=true;scene.fog=new THREE.FogExp2(0x233744,.0035);reset();}};
 }
 try {sceneAPI=createScene();}catch(error){console.warn('3D scene unavailable',error);document.querySelector('.scene-fallback').hidden=false;document.querySelector('#hotspots').hidden=true;}

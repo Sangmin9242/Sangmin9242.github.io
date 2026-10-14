@@ -58,3 +58,5 @@ body.page-leaving{animation:scene-away .24s ease-in both}body.page-entering{anim
 @media(max-width:1100px){body.journey-open .scene{margin-top:140px}.journey-heading{position:absolute;top:12px;left:5vw;margin:0;right:5vw}.journey-heading h2{font-size:28px}.journey-heading p{max-width:100%;line-height:1.5}.scene-tools button{padding:8px}.archive-shell{max-width:100%}}
 
 @media(max-width:1100px){.world,body.journey-open .world{background:var(--night)}.scene{background:linear-gradient(0deg,var(--weather-horizon,#40525b),var(--weather-sky,#40525b))}.hero-intro{padding-top:4px}.intro-description{color:#b3c4cf}.hotspots{padding-bottom:4px}}
+
+body.journey-open #sky-view,body.panel-open #sky-view{display:none}
