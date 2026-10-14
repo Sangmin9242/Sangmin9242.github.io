@@ -35,3 +35,13 @@ test('full car body with mirror allowance stays over pavement at every turn',()=
   for(const side of [-(width+.48)/2,(width+.48)/2])for(const forward of [-(length+.08)/2,(length+.08)/2]){const px=c.x+side*Math.cos(c.heading)+forward*Math.sin(c.heading),pz=c.z-side*Math.sin(c.heading)+forward*Math.cos(c.heading);assert.ok(paved(px,pz),`body off pavement ${t.state.phase}: ${px},${pz}`);}
  }}
 });
+let drivewayLampSpecs=[];
+try{({drivewayLampSpecs=[]}=await import('../driveway-layout.js'));}catch{}
+test('all driveway segments have streetlights with clear traffic lanes',()=>{
+ assert.ok(drivewayLampSpecs.length>=15,'streetlights must extend along the complete access road');
+ const lamps=drivewayLampSpecs.map(([x,z])=>({x,z,width:.38,length:.38}));
+ for(const [x,length,width] of fleet){const t=createCarTrip({x,length,width});t.board();while(t.isActive()){t.update(.035);const c=t.state.car;
+  for(const lamp of lamps)assert.equal(overlaps(c,width+.48,length+.08,lamp),false,`lamp blocks ${t.state.phase}: ${lamp.x},${lamp.z}`);
+  if(Math.abs(t.state.signedSpeed)>.01)assert.ok(Math.min(...[...lamps,...parkingLampPositions.map(([x,z])=>({x,z}))].map(p=>Math.hypot(c.x-p.x,c.z-p.z)))<11,'unlit gap on '+t.state.phase);
+ }}
+});
