@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 
 export function sportsFacilities(parent){
-  const football=new THREE.Group(),bowling=new THREE.Group();bowling.position.z=14;bowling.rotation.y=Math.PI/2;bowling.updateMatrix();parent.add(football,bowling);
+  const football=new THREE.Group(),bowling=new THREE.Group();bowling.position.set(6.95,0,14);bowling.rotation.y=Math.PI/2;bowling.updateMatrix();parent.add(football,bowling);
   const mat=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:.75,...extra}),white=mat(0xf0ede3),steel=mat(0x596772,{metalness:.6});
   function box(p,w,h,d,x,y,z,m){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m);o.position.set(x,y,z);o.castShadow=o.receiveShadow=true;p.add(o);return o;}
   function rod(p,a,b,r=.03,m=white){const x=new THREE.Vector3(...a),y=new THREE.Vector3(...b),o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,x.distanceTo(y),10),m);o.position.copy(x).add(y).multiplyScalar(.5);o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),y.sub(x).normalize());p.add(o);return o;}

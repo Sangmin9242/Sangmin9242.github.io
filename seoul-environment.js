@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 import SunCalc from './vendor/suncalc.js';
-import { celestialSky } from './celestial-sky.js?v=20261014-night-ferry';
+import { celestialSky } from './celestial-sky.js?v=20261014-bowling-align-bob';
 
 const endpoint='https://api.open-meteo.com/v1/forecast?latitude=37.5665&longitude=126.9780&current=temperature_2m,weather_code,cloud_cover,is_day&daily=sunrise,sunset&forecast_days=2&timezone=Asia%2FSeoul';
 const words={en:{clear:'Clear',cloudy:'Cloudy',fog:'Fog',rain:'Rain',snow:'Snow',storm:'Thunderstorm',waiting:'Connecting weather…',unavailable:'Weather unavailable',cached:'Last update',city:'Seoul',calendar:'Seoul calendar',updated:'Updated'},ko:{clear:'맑음',cloudy:'흐림',fog:'안개',rain:'비',snow:'눈',storm:'뇌우',waiting:'날씨 연결 중…',unavailable:'날씨 연결 불가',cached:'최근 정보',city:'서울',calendar:'서울 달력',updated:'갱신'}};

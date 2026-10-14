@@ -91,20 +91,30 @@ export function sportsAvatar({gender='male',identity='sangmin',kit='football',co
       if(geometry.type==='BufferGeometry')child.visible=false;
     });
     const cap=mesh(head,new THREE.SphereGeometry(1,24,16,0,Math.PI*2,0,Math.PI*.51),hair,[0,.030,-.008]);
-    cap.scale.set(.141,.165,.146);
-    const fringe=oval(head,[.114,.032,.028],[.009,.110,.122],hair);fringe.rotation.z=.10;
+    cap.scale.set(.141,.165,.146);cap.name='guest-hair-cap';
+    const fringe=oval(head,[.114,.032,.028],[.009,.110,.122],hair);fringe.rotation.z=.10;fringe.name='guest-fringe';
     if(!female){
       const part=line(head,[[-.060,.159,.072],[-.031,.185,.015],[-.016,.183,-.069]],.0025,mat(0x57483c));
       part.name='hair-part';
     }
   }
   if(female){
-    const ponytail=new THREE.Group();ponytail.name='ponytail';head.add(ponytail);
-    oval(ponytail,[.073,.083,.063],[0,.032,-.144],hair);
-    oval(ponytail,[.044,.129,.048],[0,-.087,-.193],hair).rotation.x=-.26;
-    oval(ponytail,[.030,.070,.034],[0,-.205,-.211],hair).rotation.x=-.23;
-    const tie=mesh(ponytail,new THREE.TorusGeometry(.043,.006,8,20),jersey,[0,-.012,-.183]);tie.rotation.x=Math.PI/2;
+    head.getObjectByName('guest-hair-cap').visible=false;head.getObjectByName('guest-fringe').visible=false;
+    const bob=new THREE.Group();bob.name='bob-haircut';head.add(bob);
+    const vertices=[],indices=[],rings=22,sectors=64;
+    for(let i=0;i<=rings;i++)for(let j=0;j<=sectors;j++){
+      const phi=j/sectors*Math.PI*2,front=THREE.MathUtils.smoothstep(Math.sin(phi),.25,.78),edge=-.16+front*.25+.004*Math.sin(phi*2),limit=Math.acos((edge-.01)/.19),theta=i/rings*limit;
+      const lower=Math.max(0,(theta-Math.PI/2)/(2.68-Math.PI/2)),radius=theta<=Math.PI/2?Math.sin(theta)*.16:.16*(1-.08*lower);
+      vertices.push(Math.cos(phi)*radius,.01+Math.cos(theta)*.19,Math.sin(phi)*radius*.99);
+    }
+    for(let i=0;i<rings;i++)for(let j=0;j<sectors;j++){const a=i*(sectors+1)+j,b=a+sectors+1;indices.push(a,b,a+1,b,b+1,a+1);}
+    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geometry.setIndex(indices);geometry.computeVertexNormals();hair.side=THREE.DoubleSide;mesh(bob,geometry,hair);
+    for(const side of [-1,1]){const cheek=oval(head,[.023,.013,.0025],[side*.083,-.051,.1075],mat(0xd0a69e));cheek.name='soft-cheek';}
+    head.children[0].scale.set(.14,.167,.14);
+    head.children.forEach(child=>{if(child.geometry?.type==='SphereGeometry'&&Math.abs(child.scale.x-.006)<.0001)child.scale.set(.008,.009,.0045);if(child.geometry?.type==='SphereGeometry'&&Math.abs(child.scale.x-.026)<.0001)child.scale.set(.021,.025,.021);});
+    group.userData.hairstyle='bob';
   }
+
   const legs=[],arms=[];
   for(const side of [-1,1]){
     const leg=new THREE.Group();leg.name=side<0?'left-hip':'right-hip';

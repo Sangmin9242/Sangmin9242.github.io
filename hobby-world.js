@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
-import { sportsAvatar } from './sports-avatar.js?v=20261014-sports-pairs';
-import { sportsFacilities } from './sports-facilities.js?v=20261014-sports-pairs';
+import { sportsAvatar } from './sports-avatar.js?v=20261014-bowling-align-bob';
+import { sportsFacilities } from './sports-facilities.js?v=20261014-bowling-align-bob';
 import { scoreBowling, rollLayout, demoPlans } from './bowling-score.js';
 
 export function hobbyWorld({world,reducedMotion,getLanguage=()=> 'en'}){
@@ -10,10 +10,10 @@ export function hobbyWorld({world,reducedMotion,getLanguage=()=> 'en'}){
   const person=sportsAvatar({identity:'sangmin',kit:'football'});annex.add(person);
   const goalkeeper=sportsAvatar({identity:'guest',kit:'football',color:0xba6741});football.add(goalkeeper);
   const partner=sportsAvatar({identity:'guest',gender:'female',kit:'bowling',color:0x927490});bowling.add(partner);
-  const roomPoint=(x,z)=>new THREE.Vector3(x,.03,z).applyMatrix4(bowling.matrix);const roomInverse=bowling.matrix.clone().invert();
+  const roomPoint=(x,z)=>new THREE.Vector3(x,.03,z).applyMatrix4(bowling.matrix);const roomInverse=bowling.matrix.clone().invert();const frontX=bowling.position.x+15.2;
   const fieldStart=new THREE.Vector3(-.8,0,3.5),laneStart=roomPoint(-1.15,11.5),yAxis=new THREE.Vector3(0,1,0),turn=new THREE.Quaternion();
   function makePath(points){const curve=new THREE.CurvePath();for(let i=1;i<points.length;i++)if(points[i].distanceTo(points[i-1])>.01)curve.add(new THREE.LineCurve3(points[i-1],points[i]));return curve;}
-  const transitPoints=[fieldStart,new THREE.Vector3(-3.6,0,8.6),new THREE.Vector3(15.2,0,8.8),new THREE.Vector3(15.2,0,15.15),laneStart],walkPath=makePath(transitPoints);
+  const transitPoints=[fieldStart,new THREE.Vector3(-3.6,0,8.6),new THREE.Vector3(frontX,0,8.8),new THREE.Vector3(frontX,0,15.15),laneStart],walkPath=makePath(transitPoints);
   let preparedWalkKey='',preparedWalk=walkPath;
   function bowlingPosePoint(){const phase=gameTime%8,done=Math.floor(gameTime/8)>=demoPlans.sangmin.length,z=done?11.5:11.5-THREE.MathUtils.smoothstep(phase,0,1.8)*2.2+THREE.MathUtils.smoothstep(phase,6.4,7.7)*2.2;return roomPoint(-1.15,z);}
   function currentWalk(){const key=gameTime.toFixed(6);if(key!==preparedWalkKey){preparedWalkKey=key;preparedWalk=makePath([...transitPoints.slice(0,-1),bowlingPosePoint()]);}return preparedWalk;}
@@ -29,12 +29,12 @@ export function hobbyWorld({world,reducedMotion,getLanguage=()=> 'en'}){
     if(current.distanceTo(target)>.35&&!reducedMotion){
       const roomLocal=current.clone().applyMatrix4(roomInverse),inside=roomLocal.x>-3.43&&roomLocal.x<3.43&&roomLocal.z>-12.4&&roomLocal.z<14.4;
       if(kind==='bowling'&&!inside){
-        if(current.z<8.8)points.push(new THREE.Vector3(-3.6,0,8.6),new THREE.Vector3(15.2,0,8.8));
-        else if(current.x<14.8&&current.z<10.65)points.push(new THREE.Vector3(15.2,0,8.8));
-        points.push(new THREE.Vector3(15.2,0,15.15));
+        if(current.z<8.8)points.push(new THREE.Vector3(-3.6,0,8.6),new THREE.Vector3(frontX,0,8.8));
+        else if(current.x<frontX-.4&&current.z<10.65)points.push(new THREE.Vector3(frontX,0,8.8));
+        points.push(new THREE.Vector3(frontX,0,15.15));
       }else if(kind!=='bowling'&&current.z>=8.6){
-        if(inside)points.push(new THREE.Vector3(15.2,0,current.z));
-        if(current.z>8.8)points.push(new THREE.Vector3(15.2,0,8.8));
+        if(inside)points.push(new THREE.Vector3(frontX,0,current.z));
+        if(current.z>8.8)points.push(new THREE.Vector3(frontX,0,8.8));
         points.push(new THREE.Vector3(-3.6,0,8.6));
       }
       points.push(target.clone());const curve=makePath(points);transition={curve,started:now,duration:Math.max(.5,curve.getLength()/2.7)};
@@ -42,6 +42,7 @@ export function hobbyWorld({world,reducedMotion,getLanguage=()=> 'en'}){
     mode=kind;start=now;facility.setFocus(kind);setKit(kind);
   }
   function footballMotion(t){
+    const previousPerson=person.position.clone(),previousKeeper=goalkeeper.position.clone(),personTurn=person.quaternion.clone(),keeperTurn=goalkeeper.quaternion.clone();
     setKit('football');const u=Math.min(t/4.6,1),x=-.8*(1-u)+Math.sin(u*Math.PI*4)*.12,z=3.5-u*6.1;
     person.position.set(x,0,z);person.rotation.y=Math.PI;person.userData.pose(t,t<4.6||t>6);
     goalkeeper.position.set(Math.sin(t*.8)*.12,0,-6.4);goalkeeper.rotation.y=0;goalkeeper.userData.pose(t,t>=6&&t<7.5,.13);
@@ -50,6 +51,14 @@ export function hobbyWorld({world,reducedMotion,getLanguage=()=> 'en'}){
     else if(t<7.5){const u=(t-6)/1.5;goalkeeper.position.set(.35+u*.55,0,-6.4-u*.65);person.position.copy(new THREE.Vector3(0,0,-2.6)).lerp(fieldStart,u);person.rotation.y=0;ball.position.set(.9,.13,-7.75+u*.6);data.footballPhase='goal';}
     else if(t<9.2){const s=(t-7.5)/1.7;ball.position.set(.9+(-.8-.9)*s,.13,-7.15+s*10.23);person.position.copy(fieldStart);person.rotation.y=Math.PI;person.userData.pose(t,false);goalkeeper.position.set(.9*(1-s),0,-7.05+s*.65);goalkeeper.userData.sportRig.legs[0].leg.rotation.x=-Math.sin(s*Math.PI)*.6;data.footballPhase='pass';}
     else{person.position.copy(fieldStart);person.rotation.y=Math.PI;person.userData.pose(t,false);ball.position.set(-.8,.13,3.08);data.footballPhase='ready';}
+    function faceRunner(actor,previous,oldRotation,running){
+      const motion=actor.position.clone().sub(previous);motion.y=0;
+      if(running&&motion.lengthSq()>1e-8){actor.quaternion.setFromAxisAngle(yAxis,Math.atan2(motion.x,motion.z));actor.userData.pose(t*1.4,true);actor.userData.sportRig.upper.rotation.x=.12;actor.userData.sportRig.legs.forEach(({leg})=>leg.rotation.x*=1.2);}
+      else{const look=ball.position.clone().sub(actor.position);look.y=0;if(look.lengthSq()>1e-8){turn.setFromAxisAngle(yAxis,Math.atan2(look.x,look.z));actor.quaternion.copy(oldRotation).slerp(turn,.2);}}
+      return motion.lengthSq()>1e-8?new THREE.Vector3(0,0,1).applyQuaternion(actor.quaternion).dot(motion.normalize()):1;
+    }
+    data.footballForwardDot=String(faceRunner(person,previousPerson,personTurn,t<4.6||(t>=6&&t<7.5)));
+    data.footballKeeperForwardDot=String(faceRunner(goalkeeper,previousKeeper,keeperTurn,t>=6&&t<9.2));
     ball.rotation.x=-t*7;data.footballPartnerPosition=JSON.stringify(goalkeeper.position.toArray());
   }
   const layouts=[demoPlans.sangmin,demoPlans.partner].map(plan=>plan.map((_,i)=>rollLayout(plan,i)));

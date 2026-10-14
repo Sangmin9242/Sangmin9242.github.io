@@ -53,8 +53,12 @@ Responsive layout: laptops/tablets/phones at widths up to 1100px use separate fl
 ## Personal sports corner
 
 - `sports-facilities.js`: fenced training pitch, net goals, benches, and a two-lane bowling room with wood-board surfaces, 18.29m foul-line-to-headpin length, curved gutters, approach guides, pinsetter/sweep, ball return, seats and score monitor. Dimensions reference [Brunswick planning guidance](https://brunswickbowling.nyc3.cdn.digitaloceanspaces.com/production/document-library/Planning-Guides/Residential-PG-for-PDF.pdf).
-- Original facility centers remain beside the research site: football (19, -1), bowling (19, 13). The bowling room turns to fit its longer lanes without overlap. Its roof stays closed in the main view and opens when Bowling is selected; background sports lights are dimmer.
-- `sports-avatar.js`: the researcher shares the existing face; football has two male players in jerseys, shorts, socks and cleats, while bowling has the researcher and a female player in polos, trousers and bowling shoes.
+- The football center stays at (19, -1). Bowling moves outward to (25.95, 13), placing its research-side end exactly along the football base edge at X=13.45. Entry paths follow the shifted doorway. Its roof stays closed in the main view and opens when Bowling is selected; background sports lights are dimmer.
+- `sports-avatar.js`: the researcher shares the existing face; football has two male players in jerseys, shorts, socks and cleats, while bowling has the researcher and a female player with a short bob and soft facial features in polos, trousers and bowling shoes.
 - `hobby-world.js`: the user avatar walks through open entrances and alternates between playing with the goalkeeper and bowling alongside the female player. The lane ball follows the hand before release, rolls to the pins, and triggers corresponding pinfall. Returning mid-game preserves score and pose; completed lanes retain final leaves.
 - `bowling-score.js`: partial ten-pin frames, strike/spare bonuses and tenth-frame fills follow [USBC scoring](https://bowl.com/welcome/keeping-score-7c992ab8f438aa57fac9f9aef753ae44). The illustrative friendly game finishes at Sangmin 104 and Player 2 237; these are animated game results, not personal records. The physical score screen and bilingual HTML table use the same score data.
 - Football/Bowling buttons and native object picking focus the selected space. Research remains the starting view. Reduced motion shows static poses and completed demonstration scores.
+
+## Foreground lighting and motion refinement
+
+A flat tiled forecourt occupies X=-17..11 and Z=11..25, with two lamps on the sides and four low path lights. Two floodlights outside the runway edges illuminate its surface, supplementing brighter inset fixtures. These lights switch with the same Seoul sunrise/sunset state. Football actors face their actual running direction; stationary poses turn toward the ball.

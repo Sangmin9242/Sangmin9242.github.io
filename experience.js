@@ -2,18 +2,18 @@ import * as THREE from './vendor/three.module.js';
 import { surface, daylightEnvironment, screenTexture, pbrTextures } from './scene-materials.js';
 import { sprayRobot } from './spray-robot.js?v=20261014-coating';
 import { airplane } from './airplane.js?v=20261014-strut';
-import { domesticJourney } from './domestic-journey.js?v=20261014-sports-pairs';
+import { domesticJourney } from './domestic-journey.js?v=20261014-bowling-align-bob';
 import { ktxTrain } from './ktx-train.js';
 import { trainBoarding } from './train-boarding.js';
-import { conferenceJourney } from './conference-journey.js?v=20261014-sports-pairs';
-import { hobbyWorld } from './hobby-world.js?v=20261014-sports-pairs';
+import { conferenceJourney } from './conference-journey.js?v=20261014-bowling-align-bob';
+import { hobbyWorld } from './hobby-world.js?v=20261014-bowling-align-bob';
 import { researchOffice } from './research-office.js';
 import { responsiveLabels } from './responsive-labels.js';
-import { boardingAvatar } from './boarding-avatar.js?v=20261014-sports-pairs';
+import { boardingAvatar } from './boarding-avatar.js?v=20261014-bowling-align-bob';
 import { constructionWorkers } from './construction-workers.js?v=20261014-refined';
-import { boardingSequence } from './boarding-sequence.js?v=20261014-sports-pairs';
+import { boardingSequence } from './boarding-sequence.js?v=20261014-bowling-align-bob';
 import { createRecordViewer } from './record-viewer.js';
-import { seoulEnvironment } from './seoul-environment.js?v=20261014-sports-pairs';
+import { seoulEnvironment } from './seoul-environment.js?v=20261014-bowling-align-bob';
 
 const text = {
   en: { introLabel:'Construction, in motion', headline:'The site is<br>my laboratory.', intro:'I connect construction-site data with digital technologies to study safer and more efficient ways to build.', explore:'Explore the site <span>↓</span>', about:'About', publications:'Publications', robotics:'Construction robotics', vision:'Computer vision', digital:'Digital construction', roboticsTag:'From motion to execution', visionTag:'From pixels to perception', digitalTag:'From data to the field', sceneLabel:'A field of possibilities', rotate:'Rotate view', reset:'Reset view', hint:'Drag to look around · Select a research point', student:"Master’s student · SeoulTech", projects:'R&D projects', ip:'Patents & software', awards:'Awards', contact:'Get in touch ↗', fallback:'Explore the research areas below.', kind:'Research', related:'Related publications', all:'All publications', cv:'Full CV', loading:'Loading…', loadError:'Please open the full CV to view these records.', roboticsDescription:'Robotic fireproofing spray connects motion planning, spray quality, and the realities of a construction site. My work explores work-area recognition and simulation for robotic execution.', visionDescription:'A camera sees pixels. A robot needs surfaces it can work on. My research uses RGB and RGB-D images to recognize steel members and classify work surfaces for fireproofing spray.', digitalDescription:'From construction inspection to human–robot collaboration, I explore how field data and digital models can support automated construction processes.' },
@@ -184,6 +184,10 @@ function createScene() {
   for(let z=-29;z<31;z+=3.5)box(world,[.085,.012,1.7],[-44,-.079,z],0xe3e5df);
   for(const z of [-32,32])for(const dx of [-6,-4,-2,2,4,6])box(world,[.22,.012,1.7],[-44+dx,-.078,z],0xe3e5df);
   for(const z of [-28,28])for(const x of [-48,-40])box(world,[.33,.012,1.8],[x,-.078,z],0xe3e5df);
+  // Flat forecourt keeps the research view open while defining the foreground.
+  box(world,[28,.05,14],[-3,-.10,18],0x888e89,{...concretePBR,roughness:.92,normalScale:new THREE.Vector2(.25,.25)});
+  for(let x=-17;x<=11;x+=3.5)box(world,[.024,.006,14],[x,-.071,18],0x626a66);
+  for(let z=11;z<=25;z+=3.5)box(world,[28,.006,.024],[-3,-.071,z],0x626a66);
   // Open residential structure: slabs, columns, steel beams, and a cutaway facade.
   const building=new THREE.Group(); building.position.set(1.3,0,-.8);world.add(building);
   for(let floor=0;floor<=6;floor++) {

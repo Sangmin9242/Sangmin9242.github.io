@@ -28,6 +28,17 @@ export function celestialSky({world,box,getLanguage}){
     const lens=new THREE.Mesh(new THREE.BoxGeometry(.38,.13,.025),material);lens.position.set(x,y,z-.11);world.add(lens);
     const light=new THREE.SpotLight(0xe5f2ff,0,19,Math.PI/3,.75,2);light.position.set(x,y,z-.15);light.target.position.set(tx,ty,tz);world.add(light,light.target);workLights.push({material,light});
   }
+  const areaLights=[];
+  for(const [x,z,height,tx,tz,intensity,distance] of [[-16.7,18,3.3,-5,18,650,32],[10.7,18,3.3,-1,18,650,32],[-53.3,-16,5.5,-44,-9,1300,44],[-34.7,16,5.5,-44,9,1300,44]]){
+    box(world,[.11,height,.11],[x,height/2,z],0x536168,{metalness:.65});box(world,[.65,.12,.5],[x,height,z],0x34434a);
+    const material=new THREE.MeshStandardMaterial({color:0xe7e8df,emissive:0xffedcf,emissiveIntensity:0});
+    const lens=new THREE.Mesh(new THREE.BoxGeometry(.52,.04,.4),material);lens.position.set(x,height-.08,z);world.add(lens);
+    const light=new THREE.SpotLight(0xffedd2,0,distance,1.25,.9,2);light.position.set(x,height-.1,z);light.target.position.set(tx,-.1,tz);world.add(light,light.target);areaLights.push({light,material,intensity,type:x<-30?'runway':'forecourt'});
+  }
+  for(const [x,z] of [[-16.7,11.3],[-16.7,24.7],[10.7,11.3],[10.7,24.7]]){
+    box(world,[.13,.75,.13],[x,.3,z],0x58666b);
+    const material=new THREE.MeshStandardMaterial({color:0xe7e4db,emissive:0xffdfae,emissiveIntensity:0});const lens=new THREE.Mesh(new THREE.BoxGeometry(.14,.09,.14),material);lens.position.set(x,.68,z);world.add(lens);areaLights.push({material,type:'bollard'});
+  }
   // Flush runway fixtures: edge rows, centreline, green thresholds and red ends.
   const runwayLights=[];
   function inset(x,z,color){
@@ -35,8 +46,8 @@ export function celestialSky({world,box,getLanguage}){
     const rim=new THREE.Mesh(new THREE.CylinderGeometry(.14,.14,.022,12),new THREE.MeshStandardMaterial({color:0x485258,metalness:.7,roughness:.45}));fixture.add(rim);
     const material=new THREE.MeshStandardMaterial({color:0xadb6ba,emissive:color,emissiveIntensity:0});
     const lens=new THREE.Mesh(new THREE.CylinderGeometry(.085,.085,.012,12),material);lens.position.y=.014;fixture.add(lens);
-    const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:halo,color,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));glow.position.y=.045;glow.scale.set(.95,.95,1);fixture.add(glow);
-    const pool=new THREE.Mesh(new THREE.PlaneGeometry(1.6,1.6),new THREE.MeshBasicMaterial({map:halo,color,transparent:true,opacity:.42,depthWrite:false,blending:THREE.AdditiveBlending}));pool.rotation.x=-Math.PI/2;pool.position.y=.018;fixture.add(pool);
+    const glow=new THREE.Sprite(new THREE.SpriteMaterial({map:halo,color,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending}));glow.position.y=.045;glow.scale.set(1.35,1.35,1);fixture.add(glow);
+    const pool=new THREE.Mesh(new THREE.PlaneGeometry(2.2,2.2),new THREE.MeshBasicMaterial({map:halo,color,transparent:true,opacity:.62,depthWrite:false,blending:THREE.AdditiveBlending}));pool.rotation.x=-Math.PI/2;pool.position.y=.018;fixture.add(pool);
     runwayLights.push({material,glow,pool});
   }
   for(let z=-32;z<=32;z+=4)for(const x of [-51.65,-36.35])inset(x,z,0xffe9b9);
@@ -48,8 +59,8 @@ export function celestialSky({world,box,getLanguage}){
     sun.position.copy(sunDirection).multiplyScalar(distance);moon.position.copy(moonDirection).multiplyScalar(distance);sun.visible=day&&sunPosition.altitude>=0;moon.visible=position.altitude>0;
     moon.material.uniforms.lightDirection.value.copy(sunDirection);
     const above=position.altitude>0,label=moonNames[language][phaseIndex(illumination.phase)];document.querySelector('#seoul-moon').textContent=(language==='ko'?'오늘의 달 모양: ':'Today’s moon: ')+label+' · '+Math.round(illumination.fraction*100)+'%';document.querySelector('#seoul-moon-visible').textContent=language==='ko'?(above?'서울: 달이 지평선 위':'서울: 달이 지평선 아래'):(above?'Seoul: above the horizon':'Seoul: below the horizon');
-    runwayLights.forEach(({material,glow,pool})=>{material.emissiveIntensity=day?0:9;glow.visible=pool.visible=!day;});
-    lamps.forEach(({material,light,glow})=>{material.emissiveIntensity=day?0:4;light.intensity=day?0:300;glow.visible=!day;});workLights.forEach(({material,light})=>{material.emissiveIntensity=day?0:2.5;light.intensity=day?0:190;});const data=document.querySelector('#scene').dataset;data.workLights=String(workLights.filter(l=>l.light.intensity>0).length);data.skySunVisible=String(sun.visible);data.skyMoonVisible=String(moon.visible);data.sunPosition=JSON.stringify(sun.position.toArray());data.moonPosition=JSON.stringify(moon.position.toArray());data.moonAltitude=String(position.altitude*180/Math.PI);data.moonAzimuth=String((position.azimuth*180/Math.PI+540)%360);data.celestialMode="world-3d";data.moonPhase=String(illumination.phase);data.moonIllumination=String(illumination.fraction);data.moonTextureLit=String(moonData.litFraction);data.moonAboveHorizon=String(above);data.streetLights=String(lamps.filter(l=>l.light.intensity>0).length);data.streetLightDirection="building";data.runwayLights=String(runwayLights.filter(l=>l.glow.visible).length);data.runwayFixtures=String(runwayLights.length);
+    runwayLights.forEach(({material,glow,pool})=>{material.emissiveIntensity=day?0:14;glow.visible=pool.visible=!day;});
+    lamps.forEach(({material,light,glow})=>{material.emissiveIntensity=day?0:4;light.intensity=day?0:300;glow.visible=!day;});workLights.forEach(({material,light})=>{material.emissiveIntensity=day?0:2.5;light.intensity=day?0:190;});areaLights.forEach(({material,light,intensity})=>{material.emissiveIntensity=day?0:3;if(light)light.intensity=day?0:intensity;});const data=document.querySelector('#scene').dataset;data.forecourtLights=String(areaLights.filter(l=>l.type==='forecourt'&&l.light.intensity>0).length);data.runwayFloodLights=String(areaLights.filter(l=>l.type==='runway'&&l.light.intensity>0).length);data.workLights=String(workLights.filter(l=>l.light.intensity>0).length);data.skySunVisible=String(sun.visible);data.skyMoonVisible=String(moon.visible);data.sunPosition=JSON.stringify(sun.position.toArray());data.moonPosition=JSON.stringify(moon.position.toArray());data.moonAltitude=String(position.altitude*180/Math.PI);data.moonAzimuth=String((position.azimuth*180/Math.PI+540)%360);data.celestialMode="world-3d";data.moonPhase=String(illumination.phase);data.moonIllumination=String(illumination.fraction);data.moonTextureLit=String(moonData.litFraction);data.moonAboveHorizon=String(above);data.streetLights=String(lamps.filter(l=>l.light.intensity>0).length);data.streetLightDirection="building";data.runwayLights=String(runwayLights.filter(l=>l.glow.visible).length);data.runwayFixtures=String(runwayLights.length);
   }
   return {update,project(camera){const d=document.querySelector('#scene').dataset;d.sunProjection=JSON.stringify(sun.getWorldPosition(new THREE.Vector3()).project(camera).toArray());d.moonProjection=JSON.stringify(moon.getWorldPosition(new THREE.Vector3()).project(camera).toArray());}};
 }
