@@ -9,7 +9,7 @@ export const conferences=[
 const words={en:{title:'Research across borders',back:'Back to the site',related:'Conference papers',event:'Conference website',prev:'Previous conference',next:'Next conference',seoul:'Seoul',hint:'Drag to rotate · Right-drag or two fingers to pan · Scroll or pinch to zoom'},ko:{title:'세계로 이어지는 연구',back:'공사 현장으로',related:'학회 논문',event:'학회 홈페이지',prev:'이전 학회',next:'다음 학회',seoul:'서울',hint:'드래그로 회전 · 우클릭 또는 두 손가락으로 이동 · 휠 또는 핀치로 확대·축소'}};
 const radius=3.5;
 function locationVector(lat,lon,r=radius){const a=THREE.MathUtils.degToRad(lat),b=THREE.MathUtils.degToRad(lon);return new THREE.Vector3(Math.cos(a)*Math.sin(b)*r,Math.sin(a)*r,Math.cos(a)*Math.cos(b)*r);}
-function routePoints(from,to){const a=locationVector(from.lat,from.lon,1),b=locationVector(to.lat,to.lon,1),angle=a.angleTo(b);return Array.from({length:101},(_,i)=>{const t=i/100;return a.clone().multiplyScalar(Math.sin((1-t)*angle)/Math.sin(angle)).addScaledVector(b,Math.sin(t*angle)/Math.sin(angle)).normalize().multiplyScalar(radius+.07+Math.sin(t*Math.PI)*.9);});}
+function routePoints(from,to){const a=locationVector(from.lat,from.lon,1),b=locationVector(to.lat,to.lon,1),angle=a.angleTo(b);return Array.from({length:101},(_,i)=>{const t=i/100;return a.clone().multiplyScalar(Math.sin((1-t)*angle)/Math.sin(angle)).addScaledVector(b,Math.sin(t*angle)/Math.sin(angle)).normalize().multiplyScalar(radius+.07+Math.sin(t*Math.PI)**2*.65);});}
 
 function atlasTexture(topology){
   const canvas=document.createElement('canvas');canvas.width=2048;canvas.height=1024;const ctx=canvas.getContext('2d');ctx.fillStyle='#112b3c';ctx.fillRect(0,0,2048,1024);
@@ -56,7 +56,27 @@ export function conferenceJourney({scene,sourceDocument,getLanguage,onSelect,red
   document.querySelectorAll('button[data-conference]').forEach(button=>button.onclick=()=>select(button.dataset.conference));
   document.querySelector('#journey-prev').onclick=()=>select(conferences[(active+conferences.length-1)%conferences.length].id);
   document.querySelector('#journey-next').onclick=()=>select(conferences[(active+1)%conferences.length].id);
-  function animate(time){if(!group.visible)return;const t=reducedMotion?1:THREE.MathUtils.clamp((time-started)/4,0,1);const points=routes[active].points;const i=Math.min(99,Math.floor(t*100));plane.position.copy(points[i]).lerp(points[i+1],Math.min(t*100-i,1));const tangent=points[i+1].clone().sub(points[i]).normalize();plane.up.copy(plane.position).normalize();plane.lookAt(plane.position.clone().add(tangent));plane.visible=t<1;routes[active].line.geometry.setDrawRange(0,Math.max(2,Math.floor(t*100)+1));}
+  function animate(time){
+    if(!group.visible)return;
+    const progress=reducedMotion?1:THREE.MathUtils.clamp((time-started)/9,0,1);
+    const t=progress*progress*(3-2*progress),points=routes[active].points;
+    const sample=u=>{const n=THREE.MathUtils.clamp(u,0,1)*100,i=Math.min(99,Math.floor(n));return points[i].clone().lerp(points[i+1],n-i);};
+    plane.position.copy(sample(t));
+    // Build the attitude in globe-local coordinates: +Z is the model's nose.
+    // Object3D.lookAt expects world coordinates, which include the globe offset.
+    const forward=sample(t+.005).sub(sample(t-.005)).normalize();
+    const radial=plane.position.clone().normalize();
+    const right=new THREE.Vector3().crossVectors(radial,forward).normalize();
+    const up=new THREE.Vector3().crossVectors(forward,right).normalize();
+    plane.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(right,up,forward));
+    const gear=THREE.MathUtils.smoothstep(t,.025,.16)*(1-THREE.MathUtils.smoothstep(t,.82,.96));
+    plane.userData.setGear(gear);plane.visible=true;
+    routes[active].line.geometry.setDrawRange(0,Math.max(2,Math.floor(t*100)+1));
+    shell.dataset.flightProgress=String(t);shell.dataset.flightGear=String(gear);
+    shell.dataset.flightHeading=String(new THREE.Vector3(0,0,1).applyQuaternion(plane.quaternion).dot(forward));
+    shell.dataset.flightPitch=String(Math.asin(THREE.MathUtils.clamp(forward.dot(radial),-1,1))*180/Math.PI);
+    shell.dataset.flightPhase=t===1?'arrived':t<.16?'takeoff':t>.82?'landing':'cruise';
+  }
   function updateLabels(camera,width,height,top){if(!group.visible)return;const offsets=[[-157,-67],[15,-52],[16,17]];const view=camera.position.clone().sub(group.position);pins.forEach((pin,i)=>{const world=pin.getWorldPosition(new THREE.Vector3()),normal=world.clone().sub(group.position).normalize(),point=world.clone().project(camera);const x=(point.x*.5+.5)*width,y=(-point.y*.5+.5)*height;const button=labels[i];button.hidden=normal.dot(view)<=radius||point.z>=1||x<0||x>width||y<0||y>height;const [dx,dy]=offsets[i];button.style.left=THREE.MathUtils.clamp(x+dx,6,width-155)+'px';button.style.top=(THREE.MathUtils.clamp(y+dy,6,height-55)+top)+'px';});}
   return {group,pins,ready,render,animate,updateLabels,select,open(){group.visible=true;shell.hidden=false;select(conferences[active].id);},close(){group.visible=false;shell.hidden=true;++request;},get center(){return group.position.clone();}};
 }

@@ -2,7 +2,7 @@ import * as THREE from './vendor/three.module.js';
 import { surface, daylightEnvironment, screenTexture, pbrTextures } from './scene-materials.js';
 import { sprayRobot } from './spray-robot.js?v=20261014-coating';
 import { airplane } from './airplane.js?v=20261014-coating';
-import { conferenceJourney } from './conference-journey.js?v=20261014-weather';
+import { conferenceJourney } from './conference-journey.js?v=20261014-flight';
 import { researchOffice } from './research-office.js';
 import { boardingSequence } from './boarding-sequence.js';
 import { createRecordViewer } from './record-viewer.js';
