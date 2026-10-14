@@ -60,3 +60,5 @@ body.page-leaving{animation:scene-away .24s ease-in both}body.page-entering{anim
 @media(max-width:1100px){.world,body.journey-open .world{background:var(--night)}.scene{background:linear-gradient(0deg,var(--weather-horizon,#40525b),var(--weather-sky,#40525b))}.hero-intro{padding-top:4px}.intro-description{color:#b3c4cf}.hotspots{padding-bottom:4px}}
 
 body.journey-open #sky-view,body.panel-open #sky-view{display:none}
+
+.scene-tools #sky-view{padding:10px 14px;min-height:40px;border:1px solid #efaa5877;border-radius:6px;background:#152b3ee8;color:#f6c684;font-weight:500;font-size:13px;white-space:nowrap}.scene-tools #sky-view:hover{background:#28475b;border-color:#efaa58}

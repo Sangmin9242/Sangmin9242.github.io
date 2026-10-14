@@ -43,7 +43,7 @@ function setLanguage(next) {
   document.querySelector('#avatar-link').href = lang === 'ko' ? 'ko.html' : 'index.html';
   document.querySelector('#avatar-label').textContent = lang === 'ko' ? '이상민 · CV' : 'Sangmin Lee · CV';
   document.querySelector('#close-panel').setAttribute('aria-label', lang === 'ko' ? '상세 내용 닫기' : 'Close details');
-  document.querySelector('#sky-view').textContent=lang==='ko'?'하늘 보기':'View sky';
+  document.querySelector('#sky-view').textContent=lang==='ko'?'☀ 해·달 보기':'☀ Sun & Moon';
   document.querySelector('#zoom-in').setAttribute('aria-label',lang==='ko'?'확대':'Zoom in');
   document.querySelector('#zoom-out').setAttribute('aria-label',lang==='ko'?'축소':'Zoom out');
   document.title = lang === 'ko' ? '이상민 — 현장에서 시작하는 연구' : 'Sangmin Lee — Construction, in motion';
@@ -156,7 +156,7 @@ function createScene() {
   const rim=new THREE.DirectionalLight(0xb8cfdf,.7); rim.position.set(14,10,-10); scene.add(rim);
   const world=new THREE.Group(); scene.add(world);
   const palette={concrete:0xa9a89f,slab:0xbebbb1,steel:0x4d5050,orange:0xb58843,dark:0x242b2e,cyan:0x8ee8f0};
-  const concretePBR=pbrTextures('concrete_wall_001');const soilPBR=pbrTextures('brown_mud_02',[220,190]);
+  const concretePBR=pbrTextures('concrete_wall_001');const soilPBR=pbrTextures('brown_mud_02',[880,760]);
   const materialCache=new Map();
   function material(color,options={}) { const key=String(color)+JSON.stringify(options);if(!materialCache.has(key)){const isConcrete=color===palette.concrete||color===palette.slab;const isMetal=[palette.steel,palette.orange,palette.dark].includes(color);materialCache.set(key,new THREE.MeshStandardMaterial({color:isConcrete?0xd4d0c6:color,roughness:isConcrete ? .93 : isMetal ? .42 : .72,metalness:isMetal ? .65 : 0,envMapIntensity:isMetal ? .9 : .45,...(isConcrete?{...concretePBR,normalScale:new THREE.Vector2(.65,.65)}:{}),...options}));}return materialCache.get(key); }
   function box(parent,size,position,color,options={}){ const mesh=new THREE.Mesh(new THREE.BoxGeometry(...size),material(color,options)); mesh.position.set(...position); mesh.castShadow=true; mesh.receiveShadow=true; parent.add(mesh); return mesh; }
@@ -164,8 +164,8 @@ function createScene() {
   function roundedBox(parent,size,position,color,radius=.07){const [w,h,d]=size;const r=Math.min(radius,w/4,h/4,d/4);const x=-w/2+r,y=-h/2+r;const shape=new THREE.Shape();shape.moveTo(x,y-r);shape.lineTo(x+w-2*r,y-r);shape.quadraticCurveTo(x+w-r,y-r,x+w-r,y);shape.lineTo(x+w-r,y+h-2*r);shape.quadraticCurveTo(x+w-r,y+h-r,x+w-2*r,y+h-r);shape.lineTo(x,y+h-r);shape.quadraticCurveTo(x-r,y+h-r,x-r,y+h-2*r);shape.lineTo(x-r,y);shape.quadraticCurveTo(x-r,y-r,x,y-r);const geo=new THREE.ExtrudeGeometry(shape,{depth:d-2*r,bevelEnabled:true,bevelSegments:3,steps:1,bevelSize:r*.4,bevelThickness:r,curveSegments:6});geo.translate(0,0,-d/2+r);const mesh=new THREE.Mesh(geo,material(color));mesh.position.set(...position);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;}
   function beam(parent,start,end,radius,color){const a=new THREE.Vector3(...start),b=new THREE.Vector3(...end);const mesh=cylinder(parent,radius,a.distanceTo(b),a.clone().add(b).multiplyScalar(.5).toArray(),color);mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),b.sub(a).normalize());return mesh;}
   function line(parent,points,color,opacity=1){const geo=new THREE.BufferGeometry().setFromPoints(points.map(p=>new THREE.Vector3(...p)));const mesh=new THREE.Line(geo,new THREE.LineBasicMaterial({color,transparent:opacity<1,opacity}));parent.add(mesh);return mesh;}
-  const ground=new THREE.Mesh(new THREE.PlaneGeometry(500,500),new THREE.MeshStandardMaterial({color:0xb0a493,...soilPBR,normalScale:new THREE.Vector2(.8,.8),roughness:1,envMapIntensity:.3}));ground.rotation.x=-Math.PI/2;ground.position.y=-.135;ground.receiveShadow=true;
-  ground.material.transparent=true;ground.material.onBeforeCompile=shader=>{shader.vertexShader='varying float terrainRadius;\n'+shader.vertexShader;shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\nterrainRadius=length(position.xy);');shader.fragmentShader='varying float terrainRadius;\n'+shader.fragmentShader;shader.fragmentShader=shader.fragmentShader.replace('#include <opaque_fragment>','diffuseColor.a*=1.-smoothstep(180.,245.,terrainRadius);\n#include <opaque_fragment>');};world.add(ground);
+  const ground=new THREE.Mesh(new THREE.PlaneGeometry(2000,2000),new THREE.MeshStandardMaterial({color:0xb0a493,...soilPBR,normalScale:new THREE.Vector2(.8,.8),roughness:1,envMapIntensity:.3}));ground.rotation.x=-Math.PI/2;ground.position.y=-.135;ground.receiveShadow=true;
+  world.add(ground);
   box(world,[16,.04,70],[-23,-.115,0],0x3d4141,{map:surface('asphalt'),bumpScale:.02});
   for(const x of [-30.9,-15.1])box(world,[.065,.012,69],[x,-.079,0],0xe3e5df);
   for(let z=-29;z<31;z+=3.5)box(world,[.085,.012,1.7],[-23,-.079,z],0xe3e5df);
