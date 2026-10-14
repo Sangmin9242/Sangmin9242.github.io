@@ -1,7 +1,7 @@
 import * as THREE from './vendor/three.module.js';
 
 // A small airliner, with its nose along local +Z and wings along X.
-export function airplane() {
+export function airplane({boarding=false}={}) {
   const group=new THREE.Group();group.name='Conference airplane';
   const white=new THREE.MeshStandardMaterial({color:0xe5e8e7,metalness:.35,roughness:.3});
   const trim=new THREE.MeshStandardMaterial({color:0xb77435,metalness:.45,roughness:.35});
@@ -10,14 +10,26 @@ export function airplane() {
   const gears=[],doors=[];
   function mesh(geometry,material,position=[0,0,0]){const m=new THREE.Mesh(geometry,material);m.position.set(...position);m.castShadow=true;m.receiveShadow=true;group.add(m);return m;}
   const profile=[[-1.85,.018],[-1.65,.09],[-1.2,.155],[.65,.17],[1.12,.145],[1.4,.1],[1.65,.018]].map(([y,r])=>new THREE.Vector2(r*1.45,y));
-  const body=mesh(new THREE.LatheGeometry(profile,32),white,[0,.62,0]);body.rotation.x=Math.PI/2;
+  // Curved fuselage skin with a real passenger aperture on its port side.
+  const doorShape=(y,z)=>{const dx=Math.abs(z-.62)-.155+.055,dy=Math.abs(y-.61)-.245+.055;return Math.hypot(Math.max(dx,0),Math.max(dy,0))+Math.min(Math.max(dx,dy),0)<.055;};
+  let body;
+  if(boarding){
+    const vertices=[],normals=[],indices=[],nz=240,na=128;
+    function radius(z){let i=0;while(i<profile.length-2&&z>profile[i+1].y)i++;const a=profile[i],b=profile[i+1];return THREE.MathUtils.lerp(a.x,b.x,(z-a.y)/(b.y-a.y));}
+    for(let i=0;i<=nz;i++){const z=THREE.MathUtils.lerp(-1.85,1.65,i/nz),r=radius(z);for(let j=0;j<=na;j++){const a=j/na*Math.PI*2;vertices.push(Math.sin(a)*r,.62+Math.cos(a)*r,z);}}
+    for(let i=0;i<nz;i++)for(let j=0;j<na;j++){const a=i*(na+1)+j,b=a+na+1;for(const tri of [[a,b,a+1],[b,b+1,a+1]]){const c=tri.map(k=>new THREE.Vector3(...vertices.slice(k*3,k*3+3))).reduce((v,p)=>v.add(p),new THREE.Vector3()).multiplyScalar(1/3);if(c.x<0&&doorShape(c.y,c.z))continue;indices.push(...tri);}}
+    const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(vertices,3));geo.setIndex(indices);geo.computeVertexNormals();body=mesh(geo,white);body.material=white.clone();body.material.side=THREE.DoubleSide;
+    group.userData.aperture={z:.62,bottom:.365,top:.855,width:.31};
+  }else{body=mesh(new THREE.LatheGeometry(profile,32),white,[0,.62,0]);body.rotation.x=Math.PI/2;}
+
+  group.userData.fuselage=body;
   function foil(vertices,material){const s=new THREE.Shape();vertices.forEach(([x,z],i)=>i?s.lineTo(x,z):s.moveTo(x,z));s.closePath();const g=new THREE.ExtrudeGeometry(s,{depth:.035,bevelEnabled:true,bevelSize:.015,bevelThickness:.012,bevelSegments:2,steps:1});const m=mesh(g,material,[0,.58,0]);m.rotation.x=Math.PI/2;return m;}
   for(const side of [-1,1]){
     foil([[side*.13,.34],[side*1.5,-.55],[side*1.56,-.8],[side*.16,-.3]],white);
     foil([[side*.06,-1.1],[side*.62,-1.42],[side*.63,-1.65],[side*.09,-1.5]],white);
     const engine=mesh(new THREE.CylinderGeometry(.105,.12,.4,24),white,[side*.57,.45,.15]);engine.rotation.x=Math.PI/2;
     const fan=mesh(new THREE.CircleGeometry(.085,24),glass,[side*.57,.45,.355]);
-    for(let z=-1.05;z<.9;z+=.16){const w=mesh(new THREE.SphereGeometry(1,10,8),glass,[side*.242,.675,z]);w.scale.set(.009,.025,.033);}
+    for(let z=-1.05;z<.9;z+=.16){if(boarding&&side===-1&&z>.43)continue;const w=mesh(new THREE.SphereGeometry(1,10,8),glass,[side*.242,.675,z]);w.scale.set(.009,.025,.033);}
     const pivot=new THREE.Group();pivot.position.set(side*.2,.38,-.35);group.add(pivot);
     const wheel=mesh(new THREE.CylinderGeometry(.08,.08,.06,20),rubber);wheel.rotation.z=Math.PI/2;pivot.add(wheel);wheel.position.set(0,-.315,0);
     const strut=mesh(new THREE.CylinderGeometry(.015,.015,.30,10),white);pivot.add(strut);strut.position.set(0,-.15,0);
