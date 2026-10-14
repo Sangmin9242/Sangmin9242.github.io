@@ -7,7 +7,7 @@ export function airplane({boarding=false}={}) {
   const trim=new THREE.MeshStandardMaterial({color:0xb77435,metalness:.45,roughness:.35});
   const glass=new THREE.MeshStandardMaterial({color:0x18313e,metalness:.5,roughness:.15});
   const rubber=new THREE.MeshStandardMaterial({color:0x252b2c,roughness:.8});
-  const gears=[],doors=[];
+  const gears=[];
   function mesh(geometry,material,position=[0,0,0]){const m=new THREE.Mesh(geometry,material);m.position.set(...position);m.castShadow=true;m.receiveShadow=true;group.add(m);return m;}
   const profile=[[-1.85,.018],[-1.65,.09],[-1.2,.155],[.65,.17],[1.12,.145],[1.4,.1],[1.65,.018]].map(([y,r])=>new THREE.Vector2(r*1.45,y));
   // Curved fuselage skin with a real passenger aperture on its port side.
@@ -34,7 +34,7 @@ export function airplane({boarding=false}={}) {
     const wheel=mesh(new THREE.CylinderGeometry(.08,.08,.06,20),rubber);wheel.rotation.z=Math.PI/2;pivot.add(wheel);wheel.position.set(0,-.315,0);
     const strut=mesh(new THREE.CylinderGeometry(.015,.015,.30,10),white);pivot.add(strut);strut.position.set(0,-.15,0);
     gears.push({pivot,axis:'z',direction:-side});
-    const door=new THREE.Group();door.position.set(side*.12,.38,-.35);group.add(door);const cover=mesh(new THREE.BoxGeometry(.14,.012,.27),white);door.add(cover);cover.position.set(side*.07,0,0);doors.push({pivot:door,axis:'z',direction:side});
+
   }
   const finShape=new THREE.Shape();finShape.moveTo(0,0);finShape.lineTo(0,.58);finShape.lineTo(.15,.64);finShape.lineTo(.62,0);finShape.closePath();
   const fin=mesh(new THREE.ExtrudeGeometry(finShape,{depth:.025,bevelEnabled:false}),trim,[0,.65,-1.65]);fin.rotation.y=-Math.PI/2;
@@ -42,8 +42,7 @@ export function airplane({boarding=false}={}) {
   const front=new THREE.Group();front.position.set(0,.38,1.05);group.add(front);
   const frontWheel=mesh(new THREE.CylinderGeometry(.06,.06,.045,20),rubber);frontWheel.rotation.z=Math.PI/2;front.add(frontWheel);frontWheel.position.set(0,-.335,0);
   const frontStrut=mesh(new THREE.CylinderGeometry(.012,.012,.30,10),white);front.add(frontStrut);frontStrut.position.set(0,-.15,0);gears.push({pivot:front,axis:'x',direction:1});
-  const noseDoor=new THREE.Group();noseDoor.position.set(-.07,.38,1.05);group.add(noseDoor);const noseCover=mesh(new THREE.BoxGeometry(.14,.012,.27),white);noseDoor.add(noseCover);noseCover.position.set(.07,0,0);doors.push({pivot:noseDoor,axis:'z',direction:1});
-  group.userData.setGear=progress=>{const p=THREE.MathUtils.clamp(progress,0,1),fold=THREE.MathUtils.smoothstep(p,.15,.8),open=THREE.MathUtils.smoothstep(p,0,.15)*(1-THREE.MathUtils.smoothstep(p,.8,1));gears.forEach(({pivot,axis,direction})=>{pivot.rotation[axis]=direction*fold*Math.PI*.49;pivot.position.y=.38+fold*.24;pivot.visible=p<.97;});doors.forEach(({pivot,axis,direction})=>pivot.rotation[axis]=direction*open*1.05);group.userData.gearProgress=p;};
+  group.userData.setGear=progress=>{const p=THREE.MathUtils.clamp(progress,0,1),fold=THREE.MathUtils.smoothstep(p,.15,.8);gears.forEach(({pivot,axis,direction})=>{pivot.rotation[axis]=direction*fold*Math.PI*.49;pivot.position.y=.38+fold*.24;pivot.visible=p<.97;});group.userData.gearProgress=p;group.userData.gearVisible=gears.filter(g=>g.pivot.visible).length;};
   group.userData.setGear(0);
   return group;
 }

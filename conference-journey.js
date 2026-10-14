@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import { airplane } from './airplane.js?v=20261014-coating';
+import { airplane } from './airplane.js?v=20261014-gearclean';
 
 export const conferences=[
   {id:'ccc',attended:true,name:'CCC 2025',full:'Creative Construction Conference',lat:44.12,lon:15.23,city:{en:'Zadar, Croatia',ko:'크로아티아 자다르'},date:{en:'14–17 June 2025',ko:'2025년 6월 14–17일'},landmark:{en:'Sea Organ',ko:'바다 오르간'},photo:'zadar',author:'Ben Snooks',license:'CC BY-SA 2.0',licenseURL:'https://creativecommons.org/licenses/by-sa/2.0/',photoURL:'https://commons.wikimedia.org/wiki/File:Zadar-Sea-Organ.jpg',source:'https://2025.creative-construction-conference.com/program.php',papers:['CCC2025/0052']},
