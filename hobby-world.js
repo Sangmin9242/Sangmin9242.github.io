@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 import { sportsAvatar } from './sports-avatar.js?v=20261014-bowling-align-bob';
-import { sportsFacilities } from './sports-facilities.js?v=20261014-bowling-align-bob';
+import { sportsFacilities } from './sports-facilities.js?v=20261015-road-gallery';
 import { scoreBowling, rollLayout, demoPlans } from './bowling-score.js';
 import { createFootballGame } from './football-game.js?v=20261014-easy';
 import { createBowlingGame } from './bowling-game.js?v=20261014-easy';

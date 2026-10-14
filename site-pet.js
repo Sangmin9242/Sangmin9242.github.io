@@ -16,6 +16,18 @@ export function sitePet({ world, camera, container, reducedMotion, getLanguage, 
   let selected=false,freePlay=true, lastHearts=0, heartAge=9, lastPose='', poseAge=1;
   const panel=document.querySelector('#pet-panel'), status=document.querySelector('#pet-status');
   const petButton=document.querySelector('#pet-stroke'), treatButton=document.querySelector('#pet-treat'), callButton=document.querySelector('#pet-call');
+  const photo=document.querySelector('#pet-photo'),photoCount=document.querySelector('#pet-photo-count');
+  const photoFiles=['assets/maltipoo-photo.jpg', 'assets/maltipoo-photo-2.png', 'assets/maltipoo-photo-3.jpg', 'assets/maltipoo-photo-4.jpg', 'assets/maltipoo-photo-5.jpg', 'assets/maltipoo-photo-6.jpg'];
+  let photoIndex=0;
+  function galleryText(){const ko=getLanguage()==='ko';photo.alt=(ko?'우리 말티푸 사진 ':'My maltipoo, photo ')+(photoIndex+1);document.querySelector('#pet-photo-prev').setAttribute('aria-label',ko?'이전 강아지 사진':'Previous dog photo');document.querySelector('#pet-photo-next').setAttribute('aria-label',ko?'다음 강아지 사진':'Next dog photo');setText(photoCount,`${photoIndex+1} / ${photoFiles.length}`);}
+  function showPhoto(step){photoIndex=(photoIndex+step+photoFiles.length)%photoFiles.length;photo.src=photoFiles[photoIndex];galleryText();}
+  document.querySelector('#pet-photo-prev').onclick=()=>showPhoto(-1);
+  document.querySelector('#pet-photo-next').onclick=()=>showPhoto(1);
+  photo.draggable=false;photo.tabIndex=0;photo.addEventListener('keydown',event=>{if(event.key==='ArrowLeft'||event.key==='ArrowRight'){event.preventDefault();event.stopPropagation();showPhoto(event.key==='ArrowLeft'?-1:1);}});
+  let swipeStart=null;
+  photo.addEventListener('pointerdown',event=>{swipeStart={x:event.clientX,y:event.clientY};});
+  photo.addEventListener('pointerup',event=>{if(!swipeStart)return;const dx=event.clientX-swipeStart.x,dy=event.clientY-swipeStart.y;swipeStart=null;if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)*1.3)showPhoto(dx<0?1:-1);});
+  photo.addEventListener('pointercancel',()=>swipeStart=null);
   const rig=[]; dog.traverse(node=>{if(node.isGroup)rig.push({node,position:node.position.clone(),quaternion:node.quaternion.clone(),scale:node.scale.clone()});});
   // Local fill keeps a tiny companion legible during a nighttime close-up.
   const fill=new THREE.PointLight(0xffe4c5,0,4.5,2);world.add(fill);
@@ -65,7 +77,7 @@ export function sitePet({ world, camera, container, reducedMotion, getLanguage, 
   const words=()=>copy[getLanguage()==='ko'?'ko':'en'];
   function setText(node,value){if(node.textContent!==value)node.textContent=value;}
   function refresh(){
-    const c=words();setText(document.querySelector('#pet-title'),c.title);setText(document.querySelector('#pet-description'),c.intro);
+    galleryText();const c=words();setText(document.querySelector('#pet-title'),c.title);setText(document.querySelector('#pet-description'),c.intro);
     setText(petButton,c.pet);setText(callButton,c.call);setText(document.querySelector('#pet-free'),freePlay?c.stay:c.free);document.querySelector('#pet-free').setAttribute('aria-pressed',String(freePlay));setText(document.querySelector('#pet-close'),c.close);
     setText(treatButton,c.treat+(state.treatCooldown>0?` · ${Math.ceil(state.treatCooldown)}${c.seconds}`:''));
     const near=camera.position.distanceTo(dog.position)<5;

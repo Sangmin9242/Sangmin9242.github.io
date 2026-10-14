@@ -1,3 +1,4 @@
+import {driveway as D} from './driveway-layout.js?v=20261015-road-gallery';
 // Deterministic, renderer-independent trip. +Z is the car's forward axis.
 const PI = Math.PI, R = 3.5;
 const clamp = value => Math.max(0, Math.min(1, value));
@@ -52,14 +53,22 @@ export function createCarTrip(spec, options={}) {
   add('door-closing',.85,t=>({worker:seatedWorker(),door:1-ease(t),inside:true}));
   add('reversing',2.8,drive(q=>car(parked.x,mix(parked.z,20,q),0),-1),-(parked.z-20));
   add('reverse-turn',4.4,drive(q=>{const a=q*PI/2;return car(parked.x-R*(1-Math.cos(a)),20-R*Math.sin(a),a);},-1,-Math.atan(wheelbase/R)),-R*PI/2);
-  add('leaving',Math.max(5,(30-(parked.x-R))/5),drive(q=>car(mix(parked.x-R,30,q),16.5,PI/2),1),30-(parked.x-R));
-  add('exit-turn',3,drive(q=>{const a=q*PI/2;return car(30+R*Math.sin(a),20-R*Math.cos(a),PI/2-a);},1,-Math.atan(wheelbase/R)),R*PI/2);
-  add('leaving-road',7,drive(q=>car(33.5,mix(20,55,q),0),1),35);
-  add('road-turn',4.5,drive(q=>{const a=q*PI;return car(37.5-4*Math.cos(a),55+4*Math.sin(a),a);},1,Math.atan(wheelbase/4)),4*PI);
-  add('away',options.waitSeconds ?? 8,()=>({car:car(41.5,55,PI),inside:true,door:0,worker:seatedWorker()}));
-  add('returning-road',7,drive(q=>car(41.5,mix(55,20,q),PI),1),35);
-  add('return-turn',3,drive(q=>{const a=q*PI/2;return car(38+R*Math.cos(a),20-R*Math.sin(a),PI+a);},1,Math.atan(wheelbase/R)),R*PI/2);
-  add('returning',Math.max(5,(38-parked.x-R)/5),drive(q=>car(mix(38,parked.x+R,q),16.5,3*PI/2),1),38-parked.x-R);
+  add('leaving',Math.max(4,(D.turnX-(parked.x-R))/5),drive(q=>car(mix(parked.x-R,D.turnX,q),16.5,PI/2),1),D.turnX-(parked.x-R));
+  add('exit-turn',3,drive(q=>{const a=q*PI/2;return car(D.turnX+R*Math.sin(a),20-R*Math.cos(a),PI/2-a);},1,-Math.atan(wheelbase/R)),R*PI/2);
+  add('leaving-neck',3,drive(q=>car(D.neckX,mix(20,D.bendZ,q),0),1),D.bendZ-20);
+  add('outbound-bend',3,drive(q=>{const a=q*PI/2;return car(D.neckX+R*(1-Math.cos(a)),D.bendZ+R*Math.sin(a),a);},1,Math.atan(wheelbase/R)),R*PI/2);
+  add('outbound-cross',6,drive(q=>car(mix(D.neckX+R,D.farX,q),D.crossZ,PI/2),1),D.farX-D.neckX-R);
+  add('outer-exit-turn',3,drive(q=>{const a=q*PI/2;return car(D.farX+R*Math.sin(a),D.crossZ+R*(1-Math.cos(a)),PI/2-a);},1,-Math.atan(wheelbase/R)),R*PI/2);
+  add('leaving-road',5,drive(q=>car(D.outX,mix(D.crossZ+R,D.loopZ,q),0),1),D.loopZ-D.crossZ-R);
+  add('road-turn',4.5,drive(q=>{const a=q*PI;return car(D.loopX-4*Math.cos(a),D.loopZ+4*Math.sin(a),a);},1,Math.atan(wheelbase/4)),4*PI);
+  add('away',options.waitSeconds ?? 8,()=>({car:car(D.returnX,D.loopZ,PI),inside:true,door:0,worker:seatedWorker()}));
+  add('returning-road',5,drive(q=>car(D.returnX,mix(D.loopZ,D.crossZ+R,q),PI),1),D.loopZ-D.crossZ-R);
+  add('outer-return-turn',3,drive(q=>{const a=q*PI/2;return car(D.returnX-R+R*Math.cos(a),D.crossZ+R-R*Math.sin(a),PI+a);},1,Math.atan(wheelbase/R)),R*PI/2);
+  add('return-cross',7,drive(q=>car(mix(D.returnX-R,D.neckX+R,q),D.crossZ,3*PI/2),1),D.returnX-D.neckX-2*R);
+  add('inbound-bend',3,drive(q=>{const a=q*PI/2;return car(D.neckX+R-R*Math.sin(a),D.bendZ+R*Math.cos(a),3*PI/2-a);},1,-Math.atan(wheelbase/R)),R*PI/2);
+  add('returning-neck',3,drive(q=>car(D.neckX,mix(D.bendZ,20,q),PI),1),D.bendZ-20);
+  add('return-turn',3,drive(q=>{const a=q*PI/2;return car(D.turnX+R*Math.cos(a),20-R*Math.sin(a),PI+a);},1,Math.atan(wheelbase/R)),R*PI/2);
+  add('returning',Math.max(3,(D.turnX-parked.x-R)/5),drive(q=>car(mix(D.turnX,parked.x+R,q),16.5,3*PI/2),1),D.turnX-parked.x-R);
   add('parking-turn',4.4,drive(q=>{const a=q*PI/2;return car(parked.x+R-R*Math.sin(a),16.5+R*(1-Math.cos(a)),3*PI/2+a);},1,Math.atan(wheelbase/R)),R*PI/2);
   add('parking',2.8,drive(q=>car(parked.x,mix(20,parked.z,q),0),1),parked.z-20);
   add('door-opening-exit',.9,t=>({car:{...parked},worker:seatedWorker(),door:ease(t),inside:true}));

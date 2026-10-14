@@ -1,6 +1,7 @@
 import * as THREE from './vendor/three.module.js';
+import {roadOutline,driveway as D} from './driveway-layout.js?v=20261015-road-gallery';
 import { boardingAvatar } from './boarding-avatar.js?v=20261014-refined';
-import { createCarTrip } from './car-trip.js?v=20261015-car-life';
+import { createCarTrip } from './car-trip.js?v=20261015-road-gallery';
 
 const phaseText={
   'walking-out':['작업자가 차량으로 이동 중','Worker walking to the car'],
@@ -11,6 +12,14 @@ const phaseText={
   'reverse-turn':['후진하여 출차 중','Turning out of the parking bay'],
   leaving:['주차장을 나가는 중','Leaving the car park'],
   'exit-turn':['진입로로 회전 중','Turning onto the access road'],
+  'leaving-neck':['볼링장 옆 진입로로 이동 중','Driving beside the bowling room'],
+  'outbound-bend':['외곽 도로로 회전 중','Turning onto the perimeter road'],
+  'outbound-cross':['시설 앞 외곽 도로를 따라 이동 중','Driving around the facilities'],
+  'outer-exit-turn':['외곽 진입로로 회전 중','Turning onto the outer access road'],
+  'outer-return-turn':['시설을 피해 복귀 중','Returning around the facilities'],
+  'return-cross':['외곽 도로를 따라 복귀 중','Returning along the perimeter road'],
+  'inbound-bend':['주차장 진입로로 회전 중','Turning towards the car park'],
+  'returning-neck':['볼링장 옆 진입로로 복귀 중','Returning beside the bowling room'],
   'leaving-road':['도로를 따라 주행 중','Driving along the access road'],
   'road-turn':['복귀를 위해 회전 중','Turning around for the return'],
   away:['8초 후 복귀합니다','Returning after an 8 second stop'],
@@ -32,12 +41,14 @@ function accessRoad(world){
   const asphalt=new THREE.MeshStandardMaterial({color:0x4b514e,roughness:.97});
   const paint=new THREE.MeshStandardMaterial({color:0xbbbcb0,roughness:.92});
   function rectangle(x,z,width,length,material,y=-.105,height=.06){const mesh=new THREE.Mesh(new THREE.BoxGeometry(width,height,length),material);mesh.position.set(x,y,z);mesh.receiveShadow=true;group.add(mesh);return mesh;}
-  rectangle(10.5,16.5,65,5.8,asphalt);
-  rectangle(37.5,36,14,39,asphalt);
-  const turn=new THREE.Mesh(new THREE.CylinderGeometry(6.8,6.8,.06,40),asphalt);turn.position.set(37.5,-.105,55);turn.receiveShadow=true;group.add(turn);
-  for(let x=13;x<29;x+=3.2)rectangle(x,16.5,1.5,.055,paint,-.073,.002);
-  for(let z=23;z<53;z+=3.2)rectangle(37.5,z,.055,1.5,paint,-.073,.002);
-  for(const z of [13.75,19.25])rectangle(10.5,z,64,.045,paint,-.073,.002);
+  const outline=new THREE.Shape();roadOutline.forEach(([x,z],i)=>i?outline.lineTo(x,-z):outline.moveTo(x,-z));outline.closePath();
+  const road=new THREE.Mesh(new THREE.ShapeGeometry(outline),asphalt);road.name='Continuous access pavement';road.rotation.x=-Math.PI/2;road.position.y=-.075;road.receiveShadow=true;group.add(road);
+  // Markings float a centimetre above the surface to keep depth ordering stable.
+  for(let x=-20;x<8;x+=3.2)rectangle(x,16.5,1.5,.055,paint,-.064,.002);
+  for(let z=22;z<30;z+=3.2)rectangle(D.neckX,z,.055,1.5,paint,-.064,.002);
+  for(let x=18;x<46;x+=3.2)rectangle(x,D.crossZ,1.5,.055,paint,-.064,.002);
+  for(let z=40;z<53;z+=3.2)rectangle(D.loopX,z,.055,1.5,paint,-.064,.002);
+  for(const z of [13.8,19.2])rectangle(-6.25,z,31.5,.045,paint,-.064,.002);
   world.add(group);return group;
 }
 
@@ -59,11 +70,11 @@ export function carLife({world,parking,container,getLanguage=()=> 'en',reducedMo
   const footBounds=new THREE.Box3();
   let selectedCar=null, activeCar=null, following=false, poseTime=0, lastPhase='';
   const panel=document.createElement('aside');panel.id='car-panel';panel.className='car-panel';panel.hidden=true;panel.setAttribute('aria-labelledby','car-title');
-  panel.innerHTML='<div class="car-panel-head"><span class="car-eyebrow">PARKING</span><button id="car-close" type="button" aria-label="Close car information">×</button></div><h2 id="car-title"></h2><p id="car-plate" class="car-plate"></p><p class="car-description" id="car-description"></p><div class="car-fleet" role="group"></div><div class="car-actions"><button id="car-board" type="button"></button><button id="car-return" type="button" hidden></button></div><label class="car-follow-label"><input id="car-follow" type="checkbox"><span id="car-follow-text"></span></label><p id="car-status" role="status" aria-live="polite"></p>';
+  panel.innerHTML='<div class="car-panel-head"><span class="car-eyebrow">PARKING</span><button id="car-close" type="button" aria-label="Close car information">×</button></div><h2 id="car-title"></h2><p class="car-description" id="car-description"></p><div class="car-fleet" role="group"></div><div class="car-actions"><button id="car-board" type="button"></button><button id="car-return" type="button" hidden></button></div><label class="car-follow-label"><input id="car-follow" type="checkbox"><span id="car-follow-text"></span></label><p id="car-status" role="status" aria-live="polite"></p>';
   (container?.closest('.world') ?? document.querySelector('.world') ?? document.body).append(panel);
-  const query=id=>panel.querySelector(id), title=query('#car-title'),plate=query('#car-plate'),boardButton=query('#car-board'),returnButton=query('#car-return'),followInput=query('#car-follow'),status=query('#car-status');
+  const query=id=>panel.querySelector(id), title=query('#car-title'),boardButton=query('#car-board'),returnButton=query('#car-return'),followInput=query('#car-follow'),status=query('#car-status');
   const fleet=panel.querySelector('.car-fleet'),fleetButtons=[];
-  for(const record of cars){const button=document.createElement('button');button.type='button';button.className='car-fleet-item';button.textContent=`${record.model} · ${record.plate}`;button.dataset.carId=record.id;button.addEventListener('click',()=>select(record.id));fleet.append(button);fleetButtons.push(button);}
+  for(const record of cars){const button=document.createElement('button');button.type='button';button.className='car-fleet-item';button.textContent=record.model;button.dataset.carId=record.id;button.addEventListener('click',()=>select(record.id));fleet.append(button);fleetButtons.push(button);}
   query('#car-close').addEventListener('click',()=>close());
   boardButton.addEventListener('click',()=>board());
   returnButton.addEventListener('click',()=>{trips.get(activeCar?.id)?.returnNow();refresh();});
@@ -75,7 +86,7 @@ export function carLife({world,parking,container,getLanguage=()=> 'en',reducedMo
   function setFollow(value){following=value;followInput.checked=value;onFollow?.(value);}
   function refresh(){
     const ko=getLanguage()==='ko',lang=ko?0:1,trip=trips.get(activeCar?.id ?? selectedCar?.id),s=trip?.state;
-    if(selectedCar){title.textContent=selectedCar.model;plate.textContent=`${ko?'차량 번호':'Plate'} · ${selectedCar.plate}`;}
+    if(selectedCar){title.textContent=selectedCar.model;}
     query('#car-description').textContent=ko?'작업자가 탑승해 출차하고, 8초 후 돌아와 같은 자리에 주차합니다.':'The worker boards, drives out, waits 8 seconds, then returns to the same parking bay.';
     query('#car-close').setAttribute('aria-label',ko?'차량 정보 닫기':'Close car information');
     fleet.setAttribute('aria-label',ko?'차량 선택':'Choose a vehicle');

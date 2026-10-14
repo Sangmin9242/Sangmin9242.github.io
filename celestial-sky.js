@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.js';
+import {parkingLampPositions,parkingBollardPositions} from './driveway-layout.js?v=20261015-road-gallery';
 import SunCalc from './vendor/suncalc.js';
 
 export function moonImage(phase){
@@ -29,13 +30,13 @@ export function celestialSky({world,box,getLanguage}){
     const light=new THREE.SpotLight(0xe5f2ff,0,19,Math.PI/3,.75,2);light.position.set(x,y,z-.15);light.target.position.set(tx,ty,tz);world.add(light,light.target);workLights.push({material,light});
   }
   const areaLights=[];
-  for(const [x,z,height,tx,tz,intensity,distance] of [[-16.7,18,3.3,-5,18,650,32],[10.7,18,3.3,-1,18,650,32],[-53.3,-16,5.5,-44,-9,1300,44],[-34.7,16,5.5,-44,9,1300,44]]){
+  for(const [x,z,height,tx,tz,intensity,distance] of [...parkingLampPositions.map(([x,z])=>[x,z,3.3,-3,18,650,32]),[-53.3,-16,5.5,-44,-9,1300,44],[-34.7,16,5.5,-44,9,1300,44]]){
     box(world,[.11,height,.11],[x,height/2,z],0x536168,{metalness:.65});box(world,[.65,.12,.5],[x,height,z],0x34434a);
     const material=new THREE.MeshStandardMaterial({color:0xe7e8df,emissive:0xffedcf,emissiveIntensity:0});
     const lens=new THREE.Mesh(new THREE.BoxGeometry(.52,.04,.4),material);lens.position.set(x,height-.08,z);world.add(lens);
     const light=new THREE.SpotLight(0xffedd2,0,distance,1.25,.9,2);light.position.set(x,height-.1,z);light.target.position.set(tx,-.1,tz);world.add(light,light.target);areaLights.push({light,material,intensity,type:x<-30?'runway':'forecourt'});
   }
-  for(const [x,z] of [[-16.7,11.3],[-16.7,24.7],[10.7,11.3],[10.7,24.7]]){
+  for(const [x,z] of parkingBollardPositions){
     box(world,[.13,.75,.13],[x,.3,z],0x58666b);
     const material=new THREE.MeshStandardMaterial({color:0xe7e4db,emissive:0xffdfae,emissiveIntensity:0});const lens=new THREE.Mesh(new THREE.BoxGeometry(.14,.09,.14),material);lens.position.set(x,.68,z);world.add(lens);areaLights.push({material,type:'bollard'});
   }
