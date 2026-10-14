@@ -6,13 +6,15 @@
   <meta name="theme-color" content="#091725">
   <title>Sangmin Lee — Construction, in motion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="experience.css?v=20261015-road-gallery">
-  <link rel="stylesheet" href="record-viewer.css?v=20261014-pet">
-  <link rel="stylesheet" href="site-pet.css?v=20261015-road-gallery">
-  <link rel="stylesheet" href="visitor-counter.css?v=20261014-pet">
-  <link rel="stylesheet" href="campus-lab.css?v=20261015-campus">
-  <link rel="stylesheet" href="car-life.css?v=20261015-driving">
+  <link media="print" onload="this.media='all'" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" data-scene-style media="print" onload="this.media='all'" onerror="this.dataset.sceneStyleError='true'" href="experience.css?v=6defc1fb8431">
+  <link rel="stylesheet" data-scene-style media="print" onload="this.media='all'" onerror="this.dataset.sceneStyleError='true'" href="record-viewer.css?v=3a2c58cf3331">
+  <link rel="stylesheet" data-scene-style media="print" onload="this.media='all'" onerror="this.dataset.sceneStyleError='true'" href="site-pet.css?v=a9728eb6d4e2">
+  <link rel="stylesheet" data-scene-style media="print" onload="this.media='all'" onerror="this.dataset.sceneStyleError='true'" href="visitor-counter.css?v=f45662dfca8e">
+  <link rel="stylesheet" data-scene-style media="print" onload="this.media='all'" onerror="this.dataset.sceneStyleError='true'" href="campus-lab.css?v=83bb616c52cf">
+  <link rel="stylesheet" data-scene-style media="print" onload="this.media='all'" onerror="this.dataset.sceneStyleError='true'" href="car-life.css?v=6a47e4f29af6">
+  <link rel="stylesheet" href="startup-loader.css?v=ce4f068ca627">
+  <link rel="modulepreload" href="assets/build/site-start.js?v=2c49820bcdd2">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Sangmin Lee">
   <meta property="og:title" content="Sangmin Lee — Construction, in motion">
@@ -30,6 +32,31 @@
   <meta name="twitter:image" content="https://sangmin9242.github.io/assets/social-preview.jpg?v=20261015">
 </head>
 <body>
+<style>.startup-loader{position:fixed;inset:0;z-index:10000;display:grid;place-items:center;background:#091725;color:#f4eee5;padding:28px;box-sizing:border-box;font-family:Outfit,"Noto Sans KR",sans-serif}.startup-loader[hidden]{display:none}.startup-loader__content{width:min(100%,380px);text-align:center}.startup-loader__drawing{width:min(100%,304px);height:auto}.startup-loader__drawing path{stroke:#edc487;stroke-width:1.4}.startup-loader__actions button[hidden]{display:none}</style>
+<section id="startup-loader" class="startup-loader" lang="en" aria-labelledby="startup-title" aria-busy="true">
+  <div class="startup-loader__content">
+    <p class="startup-loader__identity" data-startup-name>Sangmin Lee</p>
+    <svg class="startup-loader__drawing" viewBox="0 0 320 184" fill="none" aria-hidden="true">
+      <g class="startup-loader__ground"><path d="M24 147 161 181 300 144M24 147 161 112 300 144M60 138 198 171M98 128 237 162M135 119 273 153M60 156 199 121M98 166 237 131M135 175 273 141"/></g>
+      <g class="startup-loader__structure"><path d="M73 133V78L133 62 194 78V133L133 150 73 133ZM73 78 133 95 194 78M133 95V150M73 105 133 122 194 105M104 70V142M164 70V142M73 78 133 62 194 78M221 143V112L249 104 277 112V143L249 151 221 143ZM221 112 249 120 277 112M249 120V151"/></g>
+      <g class="startup-loader__wire" data-startup-wire><path d="M210 135V30M200 135V30M195 30H283V23H155V30H195M201 23 155 30M201 23 237 30M237 23 273 30M200 47 210 60 200 74 210 87 200 101 210 114 200 128M210 47 200 60 210 74 200 87 210 101 200 114 210 128M267 31V65L262 70 267 76 272 70 267 65"/></g>
+      <path class="startup-loader__datum" d="M47 143V156M41 149H53M292 135V147M286 141H298"/>
+    </svg>
+    <h1 id="startup-title" data-startup-title>Preparing the site.</h1>
+    <p class="startup-loader__intro" data-startup-intro>A moment to bring the research site into view.</p>
+    <div class="startup-loader__progress" role="progressbar" aria-label="Scene preparation" aria-valuemin="0" aria-valuemax="100" data-startup-progress><span data-startup-fill></span></div>
+    <div class="startup-loader__status-row"><p role="status" aria-live="polite" aria-atomic="true" data-startup-status>Downloading the scene</p><span data-startup-amount aria-hidden="true"></span></div>
+    <p class="startup-loader__detail" data-startup-detail>Please wait</p>
+    <div class="startup-loader__actions"><button type="button" data-startup-retry hidden>Try again</button><a data-startup-cv href="./index.html">View CV</a></div>
+  </div>
+</section>
+<script>
+(()=>{const root=document.getElementById('startup-loader'),q=key=>root.querySelector('[data-startup-'+key+']');
+if(new URLSearchParams(location.search).get('lang')==='ko'){root.lang='ko';document.documentElement.lang='ko';q('name').textContent='이상민 · Sangmin Lee';q('title').textContent='현장을 준비하고 있습니다.';q('intro').textContent='연구 현장을 둘러볼 수 있도록 준비하고 있습니다.';q('status').textContent='장면 다운로드 중';q('detail').textContent='잠시만 기다려 주세요';q('cv').textContent='이력서 보기';q('cv').href='./ko.html';}
+window.addEventListener('error',event=>{if(event.target?.tagName!=='SCRIPT'||window.siteStartup||root.hidden)return;root.dataset.state='failed';q('title').textContent=root.lang==='ko'?'현장을 불러오지 못했습니다.':'The site could not load.';q('status').textContent=root.lang==='ko'?'인터넷 연결을 확인한 뒤 다시 시도해 주세요.':'Check your connection and try again.';const retry=q('retry');retry.hidden=false;retry.textContent=root.lang==='ko'?'다시 시도':'Try again';retry.onclick=()=>location.reload();},true);
+})();
+</script>
+
   <a class="skip-link" href="#research-controls">Skip to research</a>
   <header class="masthead">
     <a class="identity" href="index.html" data-transition aria-label="Sangmin Lee home"><span class="identity-mark">sl<span>↗</span></span><span class="identity-name">Sangmin Lee</span></a>
@@ -58,7 +85,7 @@
         <button class="hotspot hobby-hotspot" data-hobby="football" data-scene-key="football"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="football">Football</span></button>
         <button class="hotspot hobby-hotspot" data-hobby="bowling" data-scene-key="bowling"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="bowling">Bowling</span></button>
       </div>
-      <aside id="pet-panel" class="pet-panel" aria-labelledby="pet-title" hidden><p class="pet-eyebrow">LITTLE MOMENTS</p><h2 id="pet-title"></h2><figure class="pet-photo" aria-roledescription="carousel"><img id="pet-photo" src="assets/maltipoo-photo.jpg" alt="My apricot maltipoo at home" loading="lazy" decoding="async"><div class="pet-photo-controls"><button id="pet-photo-prev" type="button">‹</button><span id="pet-photo-count" aria-live="polite">1 / 6</span><button id="pet-photo-next" type="button">›</button></div></figure><p id="pet-description"></p><div class="pet-actions"><button id="pet-stroke" type="button"></button><button id="pet-treat" type="button"></button><button id="pet-call" type="button"></button><button id="pet-free" type="button" aria-pressed="true"></button></div><p id="pet-status" role="status" aria-live="polite"></p><button id="pet-close" type="button"></button></aside>
+      <aside id="pet-panel" class="pet-panel" aria-labelledby="pet-title" hidden><p class="pet-eyebrow">LITTLE MOMENTS</p><h2 id="pet-title"></h2><figure class="pet-photo" aria-roledescription="carousel"><img id="pet-photo" src="assets/optimized/maltipoo-photo.webp" alt="My apricot maltipoo at home" loading="lazy" decoding="async"><div class="pet-photo-controls"><button id="pet-photo-prev" type="button">‹</button><span id="pet-photo-count" aria-live="polite">1 / 6</span><button id="pet-photo-next" type="button">›</button></div></figure><p id="pet-description"></p><div class="pet-actions"><button id="pet-stroke" type="button"></button><button id="pet-treat" type="button"></button><button id="pet-call" type="button"></button><button id="pet-free" type="button" aria-pressed="true"></button></div><p id="pet-status" role="status" aria-live="polite"></p><button id="pet-close" type="button"></button></aside>
       <aside id="hobby-caption" class="hobby-caption" aria-labelledby="hobby-title" hidden><p data-i18n="hobbies">Beyond the laboratory</p><h2 id="hobby-title"></h2><p id="hobby-description"></p><button id="game-start" type="button">Play as Sangmin</button><section id="game-controls" hidden aria-label="Game controls"><p id="game-instructions"></p><p id="game-status" role="status" aria-live="polite"></p><div id="game-pad" hidden><button data-x="0" data-z="-1" aria-label="Move forward">↑</button><button data-x="-1" data-z="0" aria-label="Move left">←</button><button data-x="0" data-z="1" aria-label="Move backward">↓</button><button data-x="1" data-z="0" aria-label="Move right">→</button><button id="football-shoot" aria-pressed="false">Shoot · D</button></div><div id="bowling-inputs" hidden><label><span id="bowling-aim-label">Direction</span><input id="bowling-aim" type="range" min="-1" max="1" step=".01" value="0"></label><label><span><span id="bowling-power-label">Power</span> <b id="bowling-power-value">70%</b></span><input id="bowling-power" type="range" min=".15" max="1" step=".01" value=".7"></label><div class="game-actions"><button id="bowling-throw">Bowl</button><button id="bowling-next" hidden>Next ball</button></div></div><div class="game-actions"><button id="game-restart">New game</button><button id="game-exit">Stop playing</button></div></section><section id="hobby-scoreboard" hidden aria-labelledby="bowling-score-title"><h3 id="bowling-score-title">Friendly game</h3><table id="bowling-score-table"><thead><tr><th scope="col">Player</th><th scope="col">1</th><th scope="col">2</th><th scope="col">3</th><th scope="col">4</th><th scope="col">5</th><th scope="col">6</th><th scope="col">7</th><th scope="col">8</th><th scope="col">9</th><th scope="col">10</th><th scope="col">Σ</th></tr></thead><tbody></tbody></table></section><button id="hobby-close" data-i18n="backToSite">Back to the site</button></aside>
 
       <div class="scene-tools"><button id="zoom-in" aria-label="Zoom in">＋</button><button id="zoom-out" aria-label="Zoom out">−</button><button id="rotate" aria-pressed="false" data-i18n="rotate">Rotate view</button><button id="reset" data-i18n="reset">Reset view</button><button id="sky-view">☀ Sun &amp; Moon</button></div>
@@ -92,7 +119,7 @@
     <nav class="panel-research-nav" aria-label="Switch research area"><button data-research="robotics" data-i18n="robotics">Construction robotics</button><button data-research="vision" data-i18n="vision">Computer vision</button><button data-research="digital" data-i18n="digital">Digital construction</button></nav>
     <div class="panel-scroll"><h2 id="panel-title"></h2><div id="panel-body"></div></div>
   </aside>
-  <script type="module" src="experience.js?v=20261015-drive-fix"></script>
+  <script type="module" src="assets/build/site-start.js?v=2c49820bcdd2"></script>
   <script src="page-transition.js"></script>
   <script type="module" src="visitor-counter.js?v=20261014-pet"></script>
 </body>

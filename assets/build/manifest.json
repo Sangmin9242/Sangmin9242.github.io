@@ -1,0 +1,17 @@
+{
+  "builder": "esbuild 0.28.2",
+  "files": [
+    {
+      "file": "assets/build/site-start.js",
+      "bytes": 7463
+    },
+    {
+      "file": "assets/build/chunk-UIZZWTPN.js.LEGAL.txt",
+      "bytes": 92
+    },
+    {
+      "file": "assets/build/chunk-UIZZWTPN.js",
+      "bytes": 884958
+    }
+  ]
+}

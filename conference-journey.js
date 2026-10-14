@@ -26,7 +26,7 @@ function atlasTexture(topology){
 export function conferenceJourney({scene,sourceDocument,getLanguage,onSelect,reducedMotion}){
   const group=new THREE.Group();group.position.y=3.8;group.visible=false;scene.add(group);
   const globe=new THREE.Mesh(new THREE.SphereGeometry(radius,80,48),new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));group.add(globe);
-  const ready=fetch('./assets/conferences/world-110m.json').then(r=>{if(!r.ok)throw new Error('Map unavailable');return r.json();}).then(topology=>{globe.material.map=atlasTexture(topology);globe.material.needsUpdate=true;}).catch(error=>console.warn(error));
+  let ready;const ensureMap=()=>ready||(ready=fetch('./assets/conferences/world-110m.json').then(r=>{if(!r.ok)throw new Error('Map unavailable');return r.json();}).then(topology=>{globe.material.map=atlasTexture(topology);globe.material.needsUpdate=true;}).catch(error=>console.warn(error)));
   // Soft rim responds to the camera, without washing out the map.
   const atmosphere=new THREE.Mesh(new THREE.SphereGeometry(radius*1.02,64,32),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,uniforms:{color:{value:new THREE.Color(0x81c9e0)}},vertexShader:'varying vec3 n;varying vec3 v;void main(){vec4 p=modelViewMatrix*vec4(position,1.);n=normalize(normalMatrix*normal);v=normalize(-p.xyz);gl_Position=projectionMatrix*p;}',fragmentShader:'uniform vec3 color;varying vec3 n;varying vec3 v;void main(){float a=pow(1.-abs(dot(n,v)),3.)*.45;gl_FragColor=vec4(color,a);}'}));group.add(atmosphere);
   const origin={lat:37.57,lon:126.98};const originPin=new THREE.Mesh(new THREE.SphereGeometry(.045,12,10),new THREE.MeshBasicMaterial({color:0xbdd7d8}));originPin.position.copy(locationVector(origin.lat,origin.lon,radius+.04));group.add(originPin);
@@ -89,5 +89,5 @@ export function conferenceJourney({scene,sourceDocument,getLanguage,onSelect,red
     }
   }
 
-  return {group,pins,ready,render,animate,updateLabels,select,open(){group.visible=true;shell.hidden=false;select(conferences[active].id);},close(){group.visible=false;shell.hidden=true;++request;},get center(){return group.position.clone();}};
+  return {group,pins,get ready(){return ensureMap();},render,animate,updateLabels,select,open(){ensureMap();group.visible=true;shell.hidden=false;select(conferences[active].id);},close(){group.visible=false;shell.hidden=true;++request;},get center(){return group.position.clone();}};
 }

@@ -1,0 +1,227 @@
+{
+  "version": 1,
+  "notes": [
+    "Original assets remain unchanged. The gzip model expands to the original GLB byte for byte.",
+    "Gallery JPEGs are fully decoded, EXIF oriented, and resized to at most 2000 pixels before high quality WebP encoding.",
+    "The transparent PNG retains every alpha byte and every visible RGB byte. Fully transparent RGB values may be normalized by the lossless WebP codec.",
+    "PSNR measurements use the same full decoded sRGB pixels and the same contain resize for source and output, avoiding JPEG decoder shrink differences.",
+    "All six PBR textures and all three conference photographs stay in their original JPEG form because lossless WebP trials made every file larger."
+  ],
+  "assets": [
+    {
+      "source": "assets/robot/fireproofing-robot.glb",
+      "output": "assets/optimized/fireproofing-robot.glb.gz",
+      "sourceBytes": 6764896,
+      "outputBytes": 2424490,
+      "sourceSha256": "aa3cc449a50694f5c572769a5e2c23b3ac25d4e610fd4875df6bb9d474f72bc5",
+      "outputSha256": "770f19a032daaba6123e691c361ce0a8d7851f7dee15b93543383258a752eddd",
+      "method": "gzip",
+      "lossless": true,
+      "level": 9,
+      "browserDecode": "fetch → DecompressionStream('gzip') → GLTFLoader.parseAsync"
+    },
+    {
+      "source": "assets/maltipoo-photo.jpg",
+      "output": "assets/optimized/maltipoo-photo.webp",
+      "sourceBytes": 2482617,
+      "outputBytes": 493298,
+      "sourceSha256": "b66a65da3e34ede4909cdf2fc6fa4384ce45e8640c930944dd82f26241b84baf",
+      "outputSha256": "dc67c792f8826a0cbae25320e4a4874be1cb74fcef27e3ed0485cba840a8c5c7",
+      "method": "webp",
+      "quality": 94,
+      "effort": 6,
+      "sourceOrientedWidth": 3024,
+      "sourceOrientedHeight": 4032,
+      "outputWidth": 1500,
+      "outputHeight": 2000,
+      "psnrAtContainSize": [
+        {
+          "width": 280,
+          "height": 180,
+          "decibels": 50.0552
+        },
+        {
+          "width": 560,
+          "height": 360,
+          "decibels": 47.5157
+        },
+        {
+          "width": 1120,
+          "height": 720,
+          "decibels": 47.5618
+        },
+        {
+          "width": 1740,
+          "height": 780,
+          "decibels": 46.9917
+        }
+      ]
+    },
+    {
+      "source": "assets/maltipoo-photo-2.png",
+      "output": "assets/optimized/maltipoo-photo-2.webp",
+      "sourceBytes": 229643,
+      "outputBytes": 86762,
+      "sourceSha256": "b7f3c31c5a76d7d86a63ab056a4f011dcaa4ab568f6d2afeef98833a652f3d05",
+      "outputSha256": "32b37160e043144e70638f930fde1d96624419512a61dd3222a6344a6fc1089d",
+      "method": "webp",
+      "lossless": true,
+      "effort": 6,
+      "sourceOrientedWidth": 480,
+      "sourceOrientedHeight": 480,
+      "outputWidth": 480,
+      "outputHeight": 480
+    },
+    {
+      "source": "assets/maltipoo-photo-3.jpg",
+      "output": "assets/optimized/maltipoo-photo-3.webp",
+      "sourceBytes": 2292011,
+      "outputBytes": 470958,
+      "sourceSha256": "ec75173394345883283aa88f676c567ad0a12cfa73dc28c1d932c0385e8649d3",
+      "outputSha256": "2e105e20f65c756139f758ed0d96a8efd91d57fcad9a9ca2ad84fb76af348660",
+      "method": "webp",
+      "quality": 94,
+      "effort": 6,
+      "sourceOrientedWidth": 3024,
+      "sourceOrientedHeight": 4032,
+      "outputWidth": 1500,
+      "outputHeight": 2000,
+      "psnrAtContainSize": [
+        {
+          "width": 280,
+          "height": 180,
+          "decibels": 50.4378
+        },
+        {
+          "width": 560,
+          "height": 360,
+          "decibels": 47.6525
+        },
+        {
+          "width": 1120,
+          "height": 720,
+          "decibels": 48.0432
+        },
+        {
+          "width": 1740,
+          "height": 780,
+          "decibels": 47.4308
+        }
+      ]
+    },
+    {
+      "source": "assets/maltipoo-photo-4.jpg",
+      "output": "assets/optimized/maltipoo-photo-4.webp",
+      "sourceBytes": 3942315,
+      "outputBytes": 618886,
+      "sourceSha256": "65ee6c2cff7fde0c8f78aec7d468d98feca415b28bcef0f780889d21c7dec19c",
+      "outputSha256": "b32b1802f0505a220569cab0b043be3eb448cb7ce1ff7df20453a41c7040bc20",
+      "method": "webp",
+      "quality": 94,
+      "effort": 6,
+      "sourceOrientedWidth": 5712,
+      "sourceOrientedHeight": 4284,
+      "outputWidth": 2000,
+      "outputHeight": 1500,
+      "psnrAtContainSize": [
+        {
+          "width": 280,
+          "height": 180,
+          "decibels": 49.6227
+        },
+        {
+          "width": 560,
+          "height": 360,
+          "decibels": 47.1004
+        },
+        {
+          "width": 1120,
+          "height": 720,
+          "decibels": 46.6824
+        },
+        {
+          "width": 1740,
+          "height": 780,
+          "decibels": 46.2149
+        }
+      ]
+    },
+    {
+      "source": "assets/maltipoo-photo-5.jpg",
+      "output": "assets/optimized/maltipoo-photo-5.webp",
+      "sourceBytes": 2733474,
+      "outputBytes": 681538,
+      "sourceSha256": "ba6f5ffa522224734159a61fe346b18102cda26b6dcb9c128cf5e7448613d15b",
+      "outputSha256": "58d7106a4b3dce5bf47b08b32001272247151e313adbbca0ea065a3ce9c87fbd",
+      "method": "webp",
+      "quality": 94,
+      "effort": 6,
+      "sourceOrientedWidth": 3024,
+      "sourceOrientedHeight": 4032,
+      "outputWidth": 1500,
+      "outputHeight": 2000,
+      "psnrAtContainSize": [
+        {
+          "width": 280,
+          "height": 180,
+          "decibels": 49.0302
+        },
+        {
+          "width": 560,
+          "height": 360,
+          "decibels": 47.015
+        },
+        {
+          "width": 1120,
+          "height": 720,
+          "decibels": 47.2257
+        },
+        {
+          "width": 1740,
+          "height": 780,
+          "decibels": 46.6786
+        }
+      ]
+    },
+    {
+      "source": "assets/maltipoo-photo-6.jpg",
+      "output": "assets/optimized/maltipoo-photo-6.webp",
+      "sourceBytes": 2342066,
+      "outputBytes": 470024,
+      "sourceSha256": "b524e26c487e3faf0cf970e90b967cf61eced1d8c90a34525f5caddcb7442772",
+      "outputSha256": "0fc6baf267683eed69158f58ca83cfbbb3f4769636566c1f5b76127ac0eacd0f",
+      "method": "webp",
+      "quality": 94,
+      "effort": 6,
+      "sourceOrientedWidth": 3024,
+      "sourceOrientedHeight": 4032,
+      "outputWidth": 1500,
+      "outputHeight": 2000,
+      "psnrAtContainSize": [
+        {
+          "width": 280,
+          "height": 180,
+          "decibels": 50.4683
+        },
+        {
+          "width": 560,
+          "height": 360,
+          "decibels": 47.9723
+        },
+        {
+          "width": 1120,
+          "height": 720,
+          "decibels": 47.8547
+        },
+        {
+          "width": 1740,
+          "height": 780,
+          "decibels": 47.3053
+        }
+      ]
+    }
+  ],
+  "totalSourceBytes": 20787022,
+  "totalOutputBytes": 5245956,
+  "savedBytes": 15541066
+}

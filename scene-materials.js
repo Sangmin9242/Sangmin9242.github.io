@@ -45,8 +45,10 @@ export function screenTexture() {
   const tex=new THREE.CanvasTexture(canvas);tex.colorSpace=THREE.SRGBColorSpace;return tex;
 }
 
+const textureTasks=[];
+export function sceneTexturesReady(){return Promise.all(textureTasks);}
 export function pbrTextures(id, repeat=[1,1]) {
   const loader=new THREE.TextureLoader();
-  const read=(suffix,color=false)=>{const texture=loader.load(`./assets/materials/${id}_${suffix}.jpg`);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(...repeat);texture.anisotropy=4;if(color)texture.colorSpace=THREE.SRGBColorSpace;return texture;};
+  const read=(suffix,color=false)=>{let finish,fail;const ready=new Promise((resolve,reject)=>{finish=resolve;fail=reject;});ready.catch(()=>{});textureTasks.push(ready);const texture=loader.load(`./assets/materials/${id}_${suffix}.jpg`,finish,undefined,fail);texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.repeat.set(...repeat);texture.anisotropy=4;if(color)texture.colorSpace=THREE.SRGBColorSpace;return texture;};
   return {map:read('diffuse',true),normalMap:read('nor_gl'),roughnessMap:read('rough')};
 }

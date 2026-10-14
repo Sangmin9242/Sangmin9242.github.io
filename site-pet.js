@@ -17,7 +17,7 @@ export function sitePet({ world, camera, container, reducedMotion, getLanguage, 
   const panel=document.querySelector('#pet-panel'), status=document.querySelector('#pet-status');
   const petButton=document.querySelector('#pet-stroke'), treatButton=document.querySelector('#pet-treat'), callButton=document.querySelector('#pet-call');
   const photo=document.querySelector('#pet-photo'),photoCount=document.querySelector('#pet-photo-count');
-  const photoFiles=['assets/maltipoo-photo.jpg', 'assets/maltipoo-photo-2.png', 'assets/maltipoo-photo-3.jpg', 'assets/maltipoo-photo-4.jpg', 'assets/maltipoo-photo-5.jpg', 'assets/maltipoo-photo-6.jpg'];
+  const photoFiles=['assets/optimized/maltipoo-photo.webp', 'assets/optimized/maltipoo-photo-2.webp', 'assets/optimized/maltipoo-photo-3.webp', 'assets/optimized/maltipoo-photo-4.webp', 'assets/optimized/maltipoo-photo-5.webp', 'assets/optimized/maltipoo-photo-6.webp'];
   let photoIndex=0;
   function galleryText(){const ko=getLanguage()==='ko';photo.alt=(ko?'우리 말티푸 사진 ':'My maltipoo, photo ')+(photoIndex+1);document.querySelector('#pet-photo-prev').setAttribute('aria-label',ko?'이전 강아지 사진':'Previous dog photo');document.querySelector('#pet-photo-next').setAttribute('aria-label',ko?'다음 강아지 사진':'Next dog photo');setText(photoCount,`${photoIndex+1} / ${photoFiles.length}`);}
   function showPhoto(step){photoIndex=(photoIndex+step+photoFiles.length)%photoFiles.length;photo.src=photoFiles[photoIndex];galleryText();}

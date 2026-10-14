@@ -2,6 +2,7 @@ import * as THREE from './vendor/three.module.js';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
 import { mergeGeometries } from './vendor/BufferGeometryUtils.js';
 import { fireproofingCoat } from './fireproofing-coat.js';
+import {loadRobotBuffer} from './asset-loading.js';
 
 export function sprayRobot({parent,position,reducedMotion,target}) {
   const group=new THREE.Group();group.name='Fireproofing spray robot';group.position.set(...position);group.rotation.y=Math.PI;parent.add(group);
@@ -10,7 +11,7 @@ export function sprayRobot({parent,position,reducedMotion,target}) {
   const sprayGeo=new THREE.BufferGeometry();sprayGeo.setAttribute('position',new THREE.BufferAttribute(positions,3));
   const spray=new THREE.Points(sprayGeo,new THREE.PointsMaterial({color:0xd3d7d0,size:.023,transparent:true,opacity:.78,depthWrite:false}));group.add(spray);spray.visible=false;
   const worldPoint=new THREE.Vector3(),start=new THREE.Vector3(),end=new THREE.Vector3();
-  const ready=new GLTFLoader().loadAsync('./assets/robot/fireproofing-robot.glb').then(gltf=>{
+  const ready=loadRobotBuffer({onProgress:progress=>window.siteStartup?.download({...progress,label:document.documentElement.lang==='ko'?'내화뿜칠 로봇':'Fireproofing robot'})}).then(bytes=>new GLTFLoader().parseAsync(bytes,'./assets/robot/')).then(gltf=>{
     const model=gltf.scene;model.updateMatrixWorld(true);
     // Retain the STEP-derived dimensions and assembly placements (metres, Y up).
     const bounds=new THREE.Box3().setFromObject(model);const center=bounds.getCenter(new THREE.Vector3());

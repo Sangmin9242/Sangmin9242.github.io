@@ -1,0 +1,2 @@
+# Preserve bundled shader strings; generated GLSL contains intentional line spaces.
+assets/build/*.js linguist-generated=true whitespace=-blank-at-eol
