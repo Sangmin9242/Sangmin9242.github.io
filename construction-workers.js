@@ -1,10 +1,10 @@
 import * as THREE from './vendor/three.module.js';
-import { boardingAvatar } from './boarding-avatar.js?v=20261014-workers';
+import { boardingAvatar } from './boarding-avatar.js?v=20261014-student';
 
 export function constructionWorkers({building,reducedMotion}){
   const workers=[];
   for(const [index,floor] of [4,5].entries()){
-    const worker=boardingAvatar();worker.name='Construction worker with helmet-mounted 360 camera';worker.scale.setScalar(.68);building.add(worker);
+    const worker=boardingAvatar({worker:true});worker.name='Construction worker with helmet-mounted 360 camera';worker.scale.setScalar(.68);building.add(worker);
     const replacements=new Map();worker.traverse(n=>{if(!n.isMesh)return;const hex=n.material.color?.getHex();if(hex===0x354957||hex===0xdfded3){if(!replacements.has(n.material)){const material=n.material.clone();material.color.setHex(hex===0x354957?0xef8d31:0xffce42);replacements.set(n.material,material);}n.material=replacements.get(n.material);}});
     const mount=new THREE.Group();mount.position.set(0,.90,0);worker.userData.headMount.add(mount);
     const black=new THREE.MeshStandardMaterial({color:0x1f272b,roughness:.38,metalness:.3}),glass=new THREE.MeshStandardMaterial({color:0x152c3a,roughness:.12,metalness:.7});

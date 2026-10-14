@@ -32,7 +32,7 @@ export function airplane({boarding=false}={}) {
     for(let z=-1.05;z<.9;z+=.16){if(boarding&&side===-1&&z>.43)continue;const w=mesh(new THREE.SphereGeometry(1,10,8),glass,[side*.242,.675,z]);w.scale.set(.009,.025,.033);}
     const pivot=new THREE.Group();pivot.position.set(side*.2,.38,-.35);group.add(pivot);
     const wheel=mesh(new THREE.CylinderGeometry(.08,.08,.06,20),rubber);wheel.rotation.z=Math.PI/2;pivot.add(wheel);wheel.position.set(0,-.315,0);
-    const strut=mesh(new THREE.CylinderGeometry(.015,.015,.30,10),white);pivot.add(strut);strut.position.set(0,-.15,0);
+    const strut=mesh(new THREE.CylinderGeometry(.019,.015,.47,12),white);pivot.add(strut);strut.position.set(0,-.08,0);
     gears.push({pivot,axis:'z',direction:-side});
 
   }
@@ -41,8 +41,10 @@ export function airplane({boarding=false}={}) {
   const cockpit=mesh(new THREE.SphereGeometry(1,24,16),glass,[0,.69,1.22]);cockpit.scale.set(.115,.038,.14);
   const front=new THREE.Group();front.position.set(0,.38,1.05);group.add(front);
   const frontWheel=mesh(new THREE.CylinderGeometry(.06,.06,.045,20),rubber);frontWheel.rotation.z=Math.PI/2;front.add(frontWheel);frontWheel.position.set(0,-.335,0);
-  const frontStrut=mesh(new THREE.CylinderGeometry(.012,.012,.30,10),white);front.add(frontStrut);frontStrut.position.set(0,-.15,0);gears.push({pivot:front,axis:'x',direction:1});
+  const frontStrut=mesh(new THREE.CylinderGeometry(.017,.012,.44,12),white);front.add(frontStrut);frontStrut.position.set(0,-.115,0);gears.push({pivot:front,axis:'x',direction:1});
   group.userData.setGear=progress=>{const p=THREE.MathUtils.clamp(progress,0,1),fold=THREE.MathUtils.smoothstep(p,.15,.8);gears.forEach(({pivot,axis,direction})=>{pivot.rotation[axis]=direction*fold*Math.PI*.49;pivot.position.y=.38+fold*.24;pivot.visible=p<.97;});group.userData.gearProgress=p;group.userData.gearVisible=gears.filter(g=>g.pivot.visible).length;};
+  const belly=(x,z)=>{let i=0;while(i<profile.length-2&&z>profile[i+1].y)i++;const a=profile[i],b=profile[i+1],r=THREE.MathUtils.lerp(a.x,b.x,(z-a.y)/(b.y-a.y));return .62-Math.sqrt(Math.max(0,r*r-x*x));};
+  group.userData.gearConnectionMargins=[.535-belly(-.2,-.35),.535-belly(.2,-.35),.485-belly(0,1.05)];
   group.userData.setGear(0);
   return group;
 }

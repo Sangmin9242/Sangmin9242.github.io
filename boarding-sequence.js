@@ -1,5 +1,5 @@
 import * as THREE from './vendor/three.module.js';
-import { boardingAvatar } from './boarding-avatar.js?v=20261014-luggage';
+import { boardingAvatar } from './boarding-avatar.js?v=20261014-student';
 
 export function boardingSequence({world,researcher,avatar,plane,box,beam}){
   const person=boardingAvatar();person.scale.setScalar(1.1);person.visible=false;world.add(person);
