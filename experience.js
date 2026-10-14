@@ -2,11 +2,12 @@ import * as THREE from './vendor/three.module.js';
 import { surface, daylightEnvironment, screenTexture, pbrTextures } from './scene-materials.js';
 import { sprayRobot } from './spray-robot.js?v=20261014-coating';
 import { airplane } from './airplane.js?v=20261014-strut';
-import { conferenceJourney } from './conference-journey.js?v=20261014-strut';
+import { conferenceJourney } from './conference-journey.js?v=20261014-adaptive';
 import { researchOffice } from './research-office.js';
-import { studentHead, studentShirt } from './student-avatar.js';
-import { constructionWorkers } from './construction-workers.js?v=20261014-student';
-import { boardingSequence } from './boarding-sequence.js?v=20261014-student';
+import { responsiveLabels } from './responsive-labels.js';
+import { boardingAvatar } from './boarding-avatar.js?v=20261014-refined';
+import { constructionWorkers } from './construction-workers.js?v=20261014-refined';
+import { boardingSequence } from './boarding-sequence.js?v=20261014-refined';
 import { createRecordViewer } from './record-viewer.js';
 import { seoulEnvironment } from './seoul-environment.js?v=20261014-runwaylights';
 
@@ -242,12 +243,7 @@ function createScene() {
   function ellipsoid(parent,scale,position,color){const m=new THREE.Mesh(new THREE.SphereGeometry(1,24,16),material(color));m.scale.set(...scale);m.position.set(...position);m.castShadow=true;m.receiveShadow=true;parent.add(m);return m;}
   cylinder(chair,.07,.4,[0,.28,.1],0x373f42);box(chair,[.48,.08,.42],[0,.53,.1],0x263334);box(chair,[.47,.53,.09],[0,.85,.34],0x263334);
   for(let i=0;i<5;i++){const a=i*Math.PI*2/5;beam(chair,[0,.11,.1],[Math.sin(a)*.34,.1,.1+Math.cos(a)*.34],.022,0x555d5f);const wheel=cylinder(chair,.042,.055,[Math.sin(a)*.34,.075,.1+Math.cos(a)*.34],0x1c272c);wheel.rotation.z=Math.PI/2;}
-  ellipsoid(avatar,[.22,.34,.15],[0,.91,0],0x354957);
-  ellipsoid(avatar,[.18,.13,.16],[0,.58,-.015],0x2a333b);
-  for(const x of [-.125,.125]){beam(avatar,[x,.58,0],[x,.53,-.35],.073,0x34414b);beam(avatar,[x,.53,-.35],[x,.15,-.36],.065,0x34414b);ellipsoid(avatar,[.082,.055,.16],[x,.1,-.44],0x242a2d);}
-  cylinder(avatar,.055,.1,[0,1.26,-.035],0xb5927a);
-  studentHead(avatar,[0,1.43,-.045],Math.PI);studentShirt(avatar,.98,-.147);
-  for(const x of [-.215,.215]){ellipsoid(avatar,[.075,.12,.08],[x,1.12,0],0x354957);beam(avatar,[x,1.1,-.01],[x*.9,.91,-.25],.053,0x354957);beam(avatar,[x*.9,.91,-.25],[x*.6,.9,-.58],.045,0x354957);ellipsoid(avatar,[.044,.023,.069],[x*.6,.912,-.59],0xc2a38c);}
+  const seatedStudent=boardingAvatar();seatedStudent.rotation.y=Math.PI;seatedStudent.userData.seated();avatar.add(seatedStudent);
   const workLight=new THREE.PointLight(0xffe3b7,1.1,5);workLight.position.set(-.3,2,-.3);researcher.add(workLight);
   const officeObjects=researchOffice({parent:researcher,box,screenTexture});
   const seoulLive=seoulEnvironment({world,scene,renderer,sun,rim,hemisphere,researcher,box,getLanguage:()=>lang,reducedMotion:reduceMotion,onCalendar:calendarFocus});
@@ -276,7 +272,7 @@ function createScene() {
   let width=1,height=1,mobile=false,officeMode=false,autoRotate=false,drag=false,moved=false,angle=.61,targetAngle=.61,pitch=.52,targetPitch=.52,distance=42,targetDistance=42;
   const lookAt=new THREE.Vector3(-4,4,8),targetLook=new THREE.Vector3(-4,4,8);
   const journey=conferenceJourney({scene,sourceDocument,getLanguage:()=>lang,reducedMotion:reduceMotion,onSelect(event){const desired=THREE.MathUtils.degToRad(event.lon);targetAngle+=Math.atan2(Math.sin(desired-targetAngle),Math.cos(desired-targetAngle));targetPitch=THREE.MathUtils.degToRad(event.lat)*.8;targetDistance=mobile?12:13;targetLook.copy(journey.center);}});
-  function reset(){officeMode=false;if(journeyOpen){journey.select(document.querySelector('#journey-view').dataset.conference);autoRotate=false;}else{targetAngle=.61;targetPitch=.52;targetDistance=mobile?62:42;targetLook.set(mobile?-5:-5,4,0);autoRotate=false;}document.querySelector('#rotate').setAttribute('aria-pressed','false');}
+  function reset(){officeMode=false;if(journeyOpen){journey.select(document.querySelector('#journey-view').dataset.conference);autoRotate=false;}else{targetAngle=.61;targetPitch=.52;targetDistance=mobile?50:42;targetLook.set(mobile?-3:-5,4,0);autoRotate=false;}document.querySelector('#rotate').setAttribute('aria-pressed','false');}
   function zoom(factor){targetDistance=THREE.MathUtils.clamp(targetDistance*factor,journeyOpen?8:officeMode?3:9,journeyOpen?22:110);}
   function calendarFocus(){officeMode=true;targetAngle=.12;targetPitch=.12;targetDistance=4.8;targetLook.copy(seoulLive.calendarPosition());autoRotate=false;}
   function focus(kind){const point=hotspotAnchors[kind]||new THREE.Vector3(1,5,0);officeMode=false;const room=!!officeObjects[kind];targetAngle=room?.12:.5;targetPitch=room?.28:.4;targetDistance=room?10:kind==='robotics'?11:kind==='vision'?23:31;targetLook.copy(point).add(new THREE.Vector3(room?3:kind==='robotics'?3.5:9,0,0));autoRotate=false;}
@@ -310,7 +306,7 @@ function createScene() {
     if(robot.userData.loaded){container.dataset.coatingCoverage=String(robot.userData.coatingCoverage||0);container.dataset.robotJoints=robot.userData.joints;container.dataset.robotNozzle=String(robot.userData.nozzle);container.dataset.robotSpraying=String(robot.userData.spraying);container.dataset.robotMotion=String(robot.userData.animationTime||0);container.dataset.sprayDistance=String(robot.userData.sprayDistance||0);container.dataset.nozzlePosition=JSON.stringify(robot.userData.nozzlePosition||[]);}
     renderer.render(scene,camera);seoulLive.projectSky(camera);
     journey.updateLabels(camera,width,height,container.offsetTop);
-    hotspotButtons.forEach(button=>{const key=button.dataset.research||button.dataset.sceneKey;const point=hotspotAnchors[key].clone().project(camera);const x=(point.x*.5+.5)*width,y=(-point.y*.5+.5)*height;const valid=(!officeObjects[key]||officeMode)&&point.z<1&&x>0&&x<width&&y>0&&y<height;button.style.visibility=valid?'visible':'hidden';const labelWidth=button.offsetWidth||150;button.style.transform=`translate(${Math.min(Math.max(x-10,8),width-labelWidth-8)}px,${y+container.offsetTop-10}px)`;});
+    responsiveLabels({buttons:hotspotButtons,anchors:hotspotAnchors,camera,width,height,top:container.offsetTop,officeMode});
   }
   renderer.setAnimationLoop(animate);resize();lookAt.copy(targetLook);
   renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();document.querySelector('.scene-fallback').hidden=false;document.querySelector('#hotspots').hidden=true;});

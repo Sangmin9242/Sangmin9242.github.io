@@ -77,6 +77,17 @@ export function conferenceJourney({scene,sourceDocument,getLanguage,onSelect,red
     shell.dataset.flightPitch=String(Math.asin(THREE.MathUtils.clamp(forward.dot(radial),-1,1))*180/Math.PI);
     shell.dataset.flightPhase=t===1?'arrived':t<.16?'takeoff':t>.82?'landing':'cruise';
   }
-  function updateLabels(camera,width,height,top){if(!group.visible)return;const offsets=[[-157,-67],[15,-52],[16,17]];const view=camera.position.clone().sub(group.position);pins.forEach((pin,i)=>{const world=pin.getWorldPosition(new THREE.Vector3()),normal=world.clone().sub(group.position).normalize(),point=world.clone().project(camera);const x=(point.x*.5+.5)*width,y=(-point.y*.5+.5)*height;const button=labels[i];button.hidden=normal.dot(view)<=radius||point.z>=1||x<0||x>width||y<0||y>height;const [dx,dy]=offsets[i];button.style.left=THREE.MathUtils.clamp(x+dx,6,width-155)+'px';button.style.top=(THREE.MathUtils.clamp(y+dy,6,height-55)+top)+'px';});}
+  function updateLabels(camera,width,height,top){
+    if(!group.visible)return;const view=camera.position.clone().sub(group.position),origin=document.querySelector('.world').getBoundingClientRect();
+    const occupied=[...document.querySelectorAll('.journey-heading,.journey-card,.journey-stops,.scene-tools')].filter(n=>getComputedStyle(n).display!=='none').map(n=>{const r=n.getBoundingClientRect();return {x:r.left-origin.left,y:r.top-origin.top,w:r.width,h:r.height};});
+    const overlap=(a,b)=>a.x<b.x+b.w+6&&a.x+a.w+6>b.x&&a.y<b.y+b.h+6&&a.y+a.h+6>b.y;
+    for(const i of [active,...pins.map((_,i)=>i).filter(i=>i!==active)]){const pin=pins[i],world=pin.getWorldPosition(new THREE.Vector3()),normal=world.clone().sub(group.position).normalize(),point=world.clone().project(camera),x=(point.x*.5+.5)*width,y=(-point.y*.5+.5)*height+top,button=labels[i];
+      if(normal.dot(view)<=radius||point.z>=1||x<0||x>width||y<top||y>height+top){button.hidden=true;continue;}
+      button.hidden=false;const w=button.offsetWidth||140,h=button.offsetHeight||48,candidates=[];
+      for(const dy of [-h-12,12,-h-68,68,-h-124,124])for(const dx of [14,-w-14,-w/2])candidates.push({x:Math.max(6,Math.min(width-w-6,x+dx)),y:Math.max(top+6,Math.min(height+top-h-6,y+dy)),w,h});
+      const placed=candidates.find(a=>!occupied.some(b=>overlap(a,b)));button.hidden=!placed;if(placed){button.style.left=placed.x+'px';button.style.top=placed.y+'px';occupied.push(placed);}
+    }
+  }
+
   return {group,pins,ready,render,animate,updateLabels,select,open(){group.visible=true;shell.hidden=false;select(conferences[active].id);},close(){group.visible=false;shell.hidden=true;++request;},get center(){return group.position.clone();}};
 }

@@ -40,3 +40,5 @@ Serve this folder over HTTP, for example `python -m http.server 8765`, then open
 ES modules and CV loading require HTTP. WebGL rendering is optional; the research buttons and full CV remain available without it.
 
 - `construction-workers.js`: two construction workers with safety vests, yellow helmets and dual-lens helmet-mounted 360 cameras. They walk along bounded paths on open floors; reduced-motion users see stationary workers.
+
+Responsive layout: laptops/tablets/phones at widths up to 1100px use separate flowing content, model viewport and wrapping navigation controls. Wide views place labels away from reserved UI and other labels. Conference labels use the same collision-avoidance approach. Archives scroll within the viewport.
