@@ -12,10 +12,10 @@ function locationVector(lat,lon,r=radius){const a=THREE.MathUtils.degToRad(lat),
 function routePoints(from,to){const a=locationVector(from.lat,from.lon,1),b=locationVector(to.lat,to.lon,1),angle=a.angleTo(b);return Array.from({length:101},(_,i)=>{const t=i/100;return a.clone().multiplyScalar(Math.sin((1-t)*angle)/Math.sin(angle)).addScaledVector(b,Math.sin(t*angle)/Math.sin(angle)).normalize().multiplyScalar(radius+.07+Math.sin(t*Math.PI)**2*.65);});}
 
 function atlasTexture(topology){
-  const canvas=document.createElement('canvas');canvas.width=2048;canvas.height=1024;const ctx=canvas.getContext('2d');ctx.fillStyle='#112b3c';ctx.fillRect(0,0,2048,1024);
+  const canvas=document.createElement('canvas');canvas.width=2048;canvas.height=1024;const ctx=canvas.getContext('2d');ctx.fillStyle='#17475f';ctx.fillRect(0,0,2048,1024);
   const arcs=topology.arcs.map(arc=>{let x=0,y=0;return arc.map(p=>{x+=p[0];y+=p[1];return [x*topology.transform.scale[0]+topology.transform.translate[0],y*topology.transform.scale[1]+topology.transform.translate[1]];});});
   const ring=indices=>indices.flatMap((id,i)=>{const points=id<0?arcs[~id].slice().reverse():arcs[id];return i?points.slice(1):points;});
-  ctx.fillStyle='#657d7c';ctx.strokeStyle='#1e4551';ctx.lineWidth=.75;
+  ctx.fillStyle='#bed6cd';ctx.strokeStyle='#416b79';ctx.lineWidth=.75;
   for(const country of topology.objects.countries.geometries){const polygons=country.type==='Polygon'?[country.arcs]:country.arcs;for(const polygon of polygons){ctx.beginPath();for(const indices of polygon){const points=ring(indices);points.forEach(([lon,lat],i)=>{const x=(lon+180)/360*2048,y=(90-lat)/180*1024;i?ctx.lineTo(x,y):ctx.moveTo(x,y);});ctx.closePath();}ctx.fill('evenodd');ctx.stroke();}}
   ctx.strokeStyle='#a5c4cc25';ctx.lineWidth=.7;for(let lat=-60;lat<=60;lat+=30){const y=(90-lat)/180*1024;ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(2048,y);ctx.stroke();}for(let lon=-180;lon<=180;lon+=30){const x=(lon+180)/360*2048;ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,1024);ctx.stroke();}
   // Sphere UV starts at -X; shift longitude by 90 degrees to match the pins.
@@ -25,7 +25,7 @@ function atlasTexture(topology){
 
 export function conferenceJourney({scene,sourceDocument,getLanguage,onSelect,reducedMotion}){
   const group=new THREE.Group();group.position.y=3.8;group.visible=false;scene.add(group);
-  const globe=new THREE.Mesh(new THREE.SphereGeometry(radius,80,48),new THREE.MeshBasicMaterial({color:0xffffff}));group.add(globe);
+  const globe=new THREE.Mesh(new THREE.SphereGeometry(radius,80,48),new THREE.MeshBasicMaterial({color:0xffffff,toneMapped:false}));group.add(globe);
   const ready=fetch('./assets/conferences/world-110m.json').then(r=>{if(!r.ok)throw new Error('Map unavailable');return r.json();}).then(topology=>{globe.material.map=atlasTexture(topology);globe.material.needsUpdate=true;}).catch(error=>console.warn(error));
   // Soft rim responds to the camera, without washing out the map.
   const atmosphere=new THREE.Mesh(new THREE.SphereGeometry(radius*1.02,64,32),new THREE.ShaderMaterial({transparent:true,side:THREE.BackSide,depthWrite:false,uniforms:{color:{value:new THREE.Color(0x81c9e0)}},vertexShader:'varying vec3 n;varying vec3 v;void main(){vec4 p=modelViewMatrix*vec4(position,1.);n=normalize(normalMatrix*normal);v=normalize(-p.xyz);gl_Position=projectionMatrix*p;}',fragmentShader:'uniform vec3 color;varying vec3 n;varying vec3 v;void main(){float a=pow(1.-abs(dot(n,v)),3.)*.45;gl_FragColor=vec4(color,a);}'}));group.add(atmosphere);
@@ -52,7 +52,7 @@ export function conferenceJourney({scene,sourceDocument,getLanguage,onSelect,red
     const papers=document.querySelector('#conference-papers');papers.replaceChildren();
     try{const doc=await sourceDocument();if(serial!==request)return;for(const id of event.papers){const a=[...doc.querySelectorAll('.publication-list a')].find(a=>a.href.includes(id));if(a)papers.append(a.closest('li').cloneNode(true));}}catch{if(serial!==request)return;const a=document.createElement('a');a.href=lang==='ko'?'ko.html':'index.html';a.textContent='CV ↗';papers.append(a);}
   }
-  function select(id,fly=true){active=conferences.findIndex(e=>e.id===id);if(active<0)active=0;started=performance.now()/1000;routes.forEach((r,i)=>r.line.material.opacity=i===active?.9:.18);pins.forEach((p,i)=>p.scale.setScalar(i===active?1.4:1));shell.dataset.conference=conferences[active].id;render();if(fly)onSelect(conferences[active]);}
+  function select(id,fly=true){active=conferences.findIndex(e=>e.id===id);if(active<0)active=0;started=performance.now()/1000;routes.forEach((r,i)=>r.line.material.opacity=i===active?.9:.4);pins.forEach((p,i)=>p.scale.setScalar(i===active?1.4:1));shell.dataset.conference=conferences[active].id;render();if(fly)onSelect(conferences[active]);}
   document.querySelectorAll('button[data-conference]').forEach(button=>button.onclick=()=>select(button.dataset.conference));
   document.querySelector('#journey-prev').onclick=()=>select(conferences[(active+conferences.length-1)%conferences.length].id);
   document.querySelector('#journey-next').onclick=()=>select(conferences[(active+1)%conferences.length].id);
