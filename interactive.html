@@ -7,8 +7,8 @@
   <title>Sangmin Lee — Construction, in motion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="experience.css?v=20261014-play">
-  <link rel="stylesheet" href="record-viewer.css?v=20261014-play">
+  <link rel="stylesheet" href="experience.css?v=20261014-easy">
+  <link rel="stylesheet" href="record-viewer.css?v=20261014-easy">
 </head>
 <body>
   <a class="skip-link" href="#research-controls">Skip to research</a>
@@ -18,7 +18,7 @@
   </header>
   <main id="main">
     <section class="world" aria-label="Interactive construction research scene">
-      <div class="scene" id="scene" aria-hidden="true"></div>
+      <div class="scene" id="scene" aria-hidden="true"><div id="bowling-launcher" class="bowling-launcher" hidden><p id="bowling-guide"></p><button id="bowling-pull" type="button"><span class="pull-ball">●</span><span id="bowling-pull-label"></span></button></div><div id="gesture-meter" class="gesture-meter" hidden></div></div>
       <div class="scene-shade"></div>
       <div class="hero-intro"><p class="intro-label" data-i18n="introLabel">Construction, in motion</p><h1 data-i18n="headline">The site is<br>my laboratory.</h1><p class="intro-description" data-i18n="intro">I connect construction-site data with digital technologies to study safer and more efficient ways to build.</p><button class="explore-button" id="explore" data-i18n="explore">Explore the site <span>↓</span></button><button class="office-button" id="office-explore" data-i18n="office">Research office</button></div>
       <div class="scene-label"><span class="status-dot"></span><span data-i18n="sceneLabel">A field of possibilities</span></div>
@@ -36,8 +36,8 @@
         <button class="hotspot hobby-hotspot" data-hobby="football" data-scene-key="football"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="football">Football</span></button>
         <button class="hotspot hobby-hotspot" data-hobby="bowling" data-scene-key="bowling"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="bowling">Bowling</span></button>
       </div>
-      <aside id="hobby-caption" class="hobby-caption" aria-labelledby="hobby-title" hidden><p data-i18n="hobbies">Beyond the laboratory</p><h2 id="hobby-title"></h2><p id="hobby-description"></p><button id="game-start" type="button">Play as Sangmin</button><section id="game-controls" hidden aria-label="Game controls"><p id="game-instructions"></p><p id="game-status" role="status" aria-live="polite"></p><div id="game-pad" hidden><button data-x="0" data-z="-1" aria-label="Move forward">↑</button><button data-x="-1" data-z="0" aria-label="Move left">←</button><button data-x="0" data-z="1" aria-label="Move backward">↓</button><button data-x="1" data-z="0" aria-label="Move right">→</button><button id="football-shoot">Shoot · D</button></div><div id="bowling-inputs" hidden><label><span id="bowling-aim-label">Direction</span><input id="bowling-aim" type="range" min="-1" max="1" step=".01" value="0"></label><label><span id="bowling-power-label">Power</span><input id="bowling-power" type="range" min=".15" max="1" step=".01" value=".7"></label><div class="game-actions"><button id="bowling-throw">Bowl</button><button id="bowling-next" hidden>Next ball</button></div></div><div class="game-actions"><button id="game-restart">New game</button><button id="game-exit">Stop playing</button></div></section><section id="hobby-scoreboard" hidden aria-labelledby="bowling-score-title"><h3 id="bowling-score-title">Friendly game</h3><table id="bowling-score-table"><thead><tr><th scope="col">Player</th><th scope="col">1</th><th scope="col">2</th><th scope="col">3</th><th scope="col">4</th><th scope="col">5</th><th scope="col">6</th><th scope="col">7</th><th scope="col">8</th><th scope="col">9</th><th scope="col">10</th><th scope="col">Σ</th></tr></thead><tbody></tbody></table></section><button id="hobby-close" data-i18n="backToSite">Back to the site</button></aside>
-      <div id="gesture-meter" class="gesture-meter" hidden></div>
+      <aside id="hobby-caption" class="hobby-caption" aria-labelledby="hobby-title" hidden><p data-i18n="hobbies">Beyond the laboratory</p><h2 id="hobby-title"></h2><p id="hobby-description"></p><button id="game-start" type="button">Play as Sangmin</button><section id="game-controls" hidden aria-label="Game controls"><p id="game-instructions"></p><p id="game-status" role="status" aria-live="polite"></p><div id="game-pad" hidden><button data-x="0" data-z="-1" aria-label="Move forward">↑</button><button data-x="-1" data-z="0" aria-label="Move left">←</button><button data-x="0" data-z="1" aria-label="Move backward">↓</button><button data-x="1" data-z="0" aria-label="Move right">→</button><button id="football-shoot" aria-pressed="false">Shoot · D</button></div><div id="bowling-inputs" hidden><label><span id="bowling-aim-label">Direction</span><input id="bowling-aim" type="range" min="-1" max="1" step=".01" value="0"></label><label><span><span id="bowling-power-label">Power</span> <b id="bowling-power-value">70%</b></span><input id="bowling-power" type="range" min=".15" max="1" step=".01" value=".7"></label><div class="game-actions"><button id="bowling-throw">Bowl</button><button id="bowling-next" hidden>Next ball</button></div></div><div class="game-actions"><button id="game-restart">New game</button><button id="game-exit">Stop playing</button></div></section><section id="hobby-scoreboard" hidden aria-labelledby="bowling-score-title"><h3 id="bowling-score-title">Friendly game</h3><table id="bowling-score-table"><thead><tr><th scope="col">Player</th><th scope="col">1</th><th scope="col">2</th><th scope="col">3</th><th scope="col">4</th><th scope="col">5</th><th scope="col">6</th><th scope="col">7</th><th scope="col">8</th><th scope="col">9</th><th scope="col">10</th><th scope="col">Σ</th></tr></thead><tbody></tbody></table></section><button id="hobby-close" data-i18n="backToSite">Back to the site</button></aside>
+
       <div class="scene-tools"><button id="zoom-in" aria-label="Zoom in">＋</button><button id="zoom-out" aria-label="Zoom out">−</button><button id="rotate" aria-pressed="false" data-i18n="rotate">Rotate view</button><button id="reset" data-i18n="reset">Reset view</button><button id="sky-view">☀ Sun &amp; Moon</button></div>
       <button id="departure-skip" class="departure-skip" data-i18n="skipFlight" hidden>Skip boarding &amp; flight</button>
       <p class="interaction-hint" data-i18n="hint">Drag to look around · Select a research point</p>
@@ -69,7 +69,7 @@
     <nav class="panel-research-nav" aria-label="Switch research area"><button data-research="robotics" data-i18n="robotics">Construction robotics</button><button data-research="vision" data-i18n="vision">Computer vision</button><button data-research="digital" data-i18n="digital">Digital construction</button></nav>
     <div class="panel-scroll"><h2 id="panel-title"></h2><div id="panel-body"></div></div>
   </aside>
-  <script type="module" src="experience.js?v=20261014-play"></script>
+  <script type="module" src="experience.js?v=20261014-easy"></script>
   <script src="page-transition.js"></script>
 </body>
 </html>

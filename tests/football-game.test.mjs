@@ -50,16 +50,98 @@ if (createFootballGame) {
     assert.ok(Math.hypot(game.state.ball.x - game.state.player.x, game.state.ball.z - game.state.player.z) < .9);
   });
 
-  test('shoot travels along current heading and repeated calls cannot restart it', () => {
+  test('shoot faces the goal independently of movement heading and cannot restart', () => {
     const game = createFootballGame();
     game.update(1 / 60, { x: 1, z: 0 });
-    const before = game.state.ball.x;
+    const before = game.state.ball.z;
     assert.equal(game.shoot(), true);
+    assert.ok(game.state.player.heading > Math.PI / 2, 'shot should face the goal after walking sideways');
     assert.equal(game.shoot(), false);
     advance(game, .15);
-    assert.ok(game.state.ball.x > before + 1);
-    near(game.state.ball.vz, 0);
+    assert.ok(game.state.ball.z < before - 1);
+    assert.ok(game.state.ball.vz < 0);
     assert.equal(game.state.shots, 1);
+  });
+
+  test('goal aim persists while movement continues to control player heading', () => {
+    const game = createFootballGame();
+    assert.equal(typeof game.setAim, 'function', 'independent aim API is missing');
+    game.setAim(1.1);
+    advance(game, .5, { x: -1 });
+    near(game.state.aimX, 1.1);
+    near(game.state.player.heading, -Math.PI / 2);
+  });
+
+  test('left, center and right aim launch through the goal mouth towards the chosen target', () => {
+    for (const target of [-1.25, 0, 1.25]) {
+      const game = createFootballGame();
+      assert.equal(typeof game.setAim, 'function', 'independent aim API is missing');
+      game.setAim(target);
+      const { x, z } = game.state.ball;
+      game.shoot();
+      const { vx, vz } = game.state.ball;
+      assert.ok(vz < 0);
+      near(x + vx * (-7.75 - z) / vz, target);
+      const goalX = x + vx * (-7.5 - z) / vz;
+      assert.ok(Math.abs(goalX) < 1.32, 'aimed trajectory must enter between the posts');
+      near(Math.hypot(vx, vz), 14);
+      near(game.state.player.heading, Math.atan2(vx, vz));
+      if (target < -1) assert.ok(vx < 0);
+      if (target > 1) assert.ok(vx > 0);
+    }
+  });
+
+  test('both aimed corners are scoreable from the starting position without a side juke', () => {
+    for (const target of [-1.25, 1.25]) {
+      const game = createFootballGame();
+      assert.equal(typeof game.setAim, 'function', 'independent aim API is missing');
+      game.setAim(target);
+      game.shoot();
+      advance(game, 1);
+      assert.equal(game.state.goals, 1, `corner ${target} should beat the keeper`);
+      assert.equal(game.state.phase, 'goal');
+      near(game.state.player.x, -.8);
+    }
+  });
+
+  test('a starting center shot is still saved by the keeper', () => {
+    const game = createFootballGame();
+    assert.equal(typeof game.setAim, 'function', 'independent aim API is missing');
+    game.setAim(0);
+    game.shoot();
+    advance(game, 1);
+    assert.equal(game.state.goals, 0);
+    assert.equal(game.state.phase, 'saved');
+  });
+
+  test('keeper guards the center slowly and reacts to a shot after a short delay', () => {
+    const game = createFootballGame();
+    game.state.keeper.x = .9;
+    advance(game, .5);
+    assert.ok(game.state.keeper.x > .5 && game.state.keeper.x < .9);
+    game.reset();
+    game.shoot();
+    advance(game, .1);
+    near(game.state.keeper.x, 0);
+    advance(game, .2);
+    assert.ok(game.state.keeper.x < 0 && game.state.keeper.x > -.15);
+  });
+
+  test('aim clamps to the goal corners and invalid values and reset select the center', () => {
+    const game = createFootballGame();
+    assert.equal(typeof game.setAim, 'function', 'independent aim API is missing');
+    near(game.state.aimX, 0);
+    game.setAim(20);
+    near(game.state.aimX, 1.25);
+    game.setAim(-20);
+    near(game.state.aimX, -1.25);
+    for (const invalid of [NaN, Infinity, undefined, 'right']) {
+      game.setAim(invalid);
+      near(game.state.aimX, 0);
+    }
+    game.setAim(1);
+    game.reset();
+    near(game.state.aimX, 0);
   });
 
   test('holding shoot does not fire another shot after the ball returns', () => {
@@ -92,6 +174,14 @@ if (createFootballGame) {
     assert.equal(game.state.goals, 0);
     assert.ok(game.state.ball.z >= -7.5);
     assert.ok(game.state.ball.vz > 0);
+  });
+
+  test('a slower ball can traverse the goal-mouth channel and cross the goal line', () => {
+    const game = createFootballGame();
+    moveBall(game, 1.15, -7.2, 0, -5);
+    advance(game, .2);
+    assert.equal(game.state.goals, 1);
+    assert.equal(game.state.phase, 'goal');
   });
 
   test('ball already behind the line does not create a goal', () => {
@@ -169,6 +259,8 @@ if (createFootballGame) {
   test('movement and shots are consistent at 30, 60 and 120 frames per second', () => {
     const games = [30, 60, 120].map(fps => {
       const game = createFootballGame();
+      assert.equal(typeof game.setAim, 'function', 'independent aim API is missing');
+      game.setAim(1.25);
       advance(game, .5, { x: .6, z: -.8 }, fps);
       game.shoot();
       advance(game, .4, {}, fps);

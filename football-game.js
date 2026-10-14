@@ -11,11 +11,13 @@ const finite = value => Number.isFinite(value) ? value : 0;
 /**
  * update(dt seconds, { x, z, shoot }) accepts pitch-world movement axes.
  * shoot is edge-triggered; shoot() is an immediate one-shot command returning success.
+ * setAim(x) selects a persistent goal target in [-1.25, 1.25] at z=-7.75.
+ * Movement changes heading; shooting turns heading towards the chosen goal target.
  * State objects retain their identity across reset. kicking is a 0..1 animation weight.
  * phase: playing | shot | goal | saved | miss. State is writable for scene/test setup.
  */
 export function createFootballGame() {
-  const state = { player: {}, keeper: {}, ball: {}, goals: 0, shots: 0, phase: 'playing' };
+  const state = { player: {}, keeper: {}, ball: {}, aimX: 0, goals: 0, shots: 0, phase: 'playing' };
   let accumulator = 0, heldShoot = false, pendingShoot = false;
   let shotAge = 0, resultAge = 0, cooldown = 0;
 
@@ -33,6 +35,7 @@ export function createFootballGame() {
     Object.assign(state.keeper, { x: 0, z: -6.65, heading: 0 });
     state.goals = 0;
     state.shots = 0;
+    state.aimX = 0;
     state.phase = 'playing';
     accumulator = 0;
     heldShoot = pendingShoot = false;
@@ -41,12 +44,19 @@ export function createFootballGame() {
     return state;
   }
 
+  function setAim(x) {
+    state.aimX = clamp(finite(x), -1.25, 1.25);
+    return state.aimX;
+  }
+
   function shoot() {
     const { player, ball } = state;
     if (state.phase !== 'playing' || cooldown > 0 || Math.hypot(ball.x - player.x, ball.z - player.z) > 1) return false;
-    placeBall();
-    ball.vx = Math.sin(player.heading) * 14;
-    ball.vz = Math.cos(player.heading) * 14;
+    const dx = setAim(state.aimX) - ball.x, dz = -7.75 - ball.z;
+    const distance = Math.hypot(dx, dz);
+    ball.vx = dx / distance * 14;
+    ball.vz = dz / distance * 14;
+    player.heading = Math.atan2(dx, dz);
     player.kicking = 1;
     state.shots++;
     state.phase = 'shot';
@@ -72,7 +82,7 @@ export function createFootballGame() {
     const speedSquared = ball.vx ** 2 + ball.vz ** 2;
     const approach = dx * ball.vx + dz * ball.vz;
     if (speedSquared < 1e-12 || approach >= 0) return Infinity;
-    const c = dx ** 2 + dz ** 2 - .66 ** 2;
+    const c = dx ** 2 + dz ** 2 - .5 ** 2;
     const discriminant = approach ** 2 - speedSquared * c;
     if (discriminant < 0) return Infinity;
     const contact = c <= 0 ? 0 : (-approach - Math.sqrt(discriminant)) / speedSquared;
@@ -119,7 +129,8 @@ export function createFootballGame() {
       else ball.vz *= -.68;
     }
     ball.x = clamp(ball.x, -SIDE, SIDE);
-    ball.z = clamp(ball.z, -END, END);
+    // The open goal mouth extends past the pitch wall to the scoring plane.
+    ball.z = clamp(ball.z, Math.abs(ball.x) < GOAL_HALF_WIDTH ? GOAL_LINE : -END, END);
     const drag = Math.exp(-.28 * dt);
     ball.vx *= drag;
     ball.vz *= drag;
@@ -135,8 +146,11 @@ export function createFootballGame() {
       player.x = clamp(player.x + x * 3.8 * dt, -4.55, 4.55);
       player.z = clamp(player.z + z * 3.8 * dt, -7.1, 7.1);
     }
-    // A slower keeper leaves room to beat him by approaching from the wings.
-    keeper.x += clamp(clamp(ball.x, -1.12, 1.12) - keeper.x, -1.6 * dt, 1.6 * dt);
+    // Guard the center between shots; allow aimed corners to beat a late reaction.
+    const reacting = state.phase === 'shot' && shotAge >= .18;
+    const keeperTarget = reacting ? clamp(ball.x, -.9, .9) : 0;
+    const keeperSpeed = state.phase === 'shot' ? (reacting ? .75 : 0) : .45;
+    keeper.x += clamp(keeperTarget - keeper.x, -keeperSpeed * dt, keeperSpeed * dt);
     // Separate bodies before dribbling/shooting, retaining the player's intended aim.
     const bodyDistance = .5;
     let dx = player.x - keeper.x, dz = player.z - keeper.z;
@@ -199,5 +213,5 @@ export function createFootballGame() {
   }
 
   reset();
-  return { state, reset, update, shoot };
+  return { state, reset, update, shoot, setAim };
 }

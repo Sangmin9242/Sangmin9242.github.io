@@ -2,20 +2,20 @@ import * as THREE from './vendor/three.module.js';
 import { surface, daylightEnvironment, screenTexture, pbrTextures } from './scene-materials.js';
 import { sprayRobot } from './spray-robot.js?v=20261014-coating';
 import { airplane } from './airplane.js?v=20261014-strut';
-import { domesticJourney } from './domestic-journey.js?v=20261014-play';
+import { domesticJourney } from './domestic-journey.js?v=20261014-easy';
 import { ktxTrain } from './ktx-train.js';
 import { trainBoarding } from './train-boarding.js';
-import { conferenceJourney } from './conference-journey.js?v=20261014-play';
-import { hobbyWorld } from './hobby-world.js?v=20261014-play';
-import { sportsPlay } from './sports-play.js?v=20261014-play';
-import { parkingCars } from './parking-cars.js?v=20261014-play';
+import { conferenceJourney } from './conference-journey.js?v=20261014-easy';
+import { hobbyWorld } from './hobby-world.js?v=20261014-easy';
+import { sportsPlay } from './sports-play.js?v=20261014-easy';
+import { parkingCars } from './parking-cars.js?v=20261014-easy';
 import { researchOffice } from './research-office.js';
 import { responsiveLabels } from './responsive-labels.js';
-import { boardingAvatar } from './boarding-avatar.js?v=20261014-play';
+import { boardingAvatar } from './boarding-avatar.js?v=20261014-easy';
 import { constructionWorkers } from './construction-workers.js?v=20261014-refined';
-import { boardingSequence } from './boarding-sequence.js?v=20261014-play';
+import { boardingSequence } from './boarding-sequence.js?v=20261014-easy';
 import { createRecordViewer } from './record-viewer.js';
-import { seoulEnvironment } from './seoul-environment.js?v=20261014-play';
+import { seoulEnvironment } from './seoul-environment.js?v=20261014-easy';
 
 const text = {
   en: { introLabel:'Construction, in motion', headline:'The site is<br>my laboratory.', intro:'I connect construction-site data with digital technologies to study safer and more efficient ways to build.', explore:'Explore the site <span>↓</span>', about:'About', publications:'Publications', robotics:'Construction robotics', vision:'Computer vision', digital:'Digital construction', roboticsTag:'From motion to execution', visionTag:'From pixels to perception', digitalTag:'From data to the field', sceneLabel:'A field of possibilities', rotate:'Rotate view', reset:'Reset view', hint:'Drag to look around · Select a research point', student:"Master’s student · SeoulTech", projects:'R&D projects', ip:'Patents & software', awards:'Awards', contact:'Get in touch ↗', fallback:'Explore the research areas below.', kind:'Research', related:'Related publications', all:'All publications', cv:'Full CV', loading:'Loading…', loadError:'Please open the full CV to view these records.', roboticsDescription:'Robotic fireproofing spray connects motion planning, spray quality, and the realities of a construction site. My work explores work-area recognition and simulation for robotic execution.', visionDescription:'A camera sees pixels. A robot needs surfaces it can work on. My research uses RGB and RGB-D images to recognize steel members and classify work surfaces for fireproofing spray.', digitalDescription:'From construction inspection to human–robot collaboration, I explore how field data and digital models can support automated construction processes.' },
@@ -319,7 +319,7 @@ function createScene() {
   function zoom(factor){targetDistance=THREE.MathUtils.clamp(targetDistance*factor,journeyOpen?8:officeMode?3:9,journeyOpen?22:110);}
   function calendarFocus(){closeHobby(false);skyMode=false;officeMode=true;targetAngle=.12;targetPitch=.12;targetDistance=4.8;targetLook.copy(seoulLive.calendarPosition());autoRotate=false;}
   function hobby(kind){hobbies.select(kind);container.dataset.hobbyFocus=kind;if(kind==='auto')return;officeMode=false;skyMode=false;autoRotate=false;targetAngle=kind==='bowling'?Math.PI/2+.1:.1;targetPitch=kind==='bowling'?.78:.65;targetDistance=kind==='bowling'?(mobile?38:36):(mobile?24:23);targetLook.copy(hobbies.anchors[kind]);if(!mobile){if(kind==='bowling')targetLook.z-=3;else targetLook.x-=3;}document.querySelector('#rotate').setAttribute('aria-pressed','false');}
-  function gameView(kind){officeMode=false;skyMode=false;autoRotate=false;pointers.clear();drag=false;moved=false;targetAngle=kind==='bowling'?Math.PI/2:0;targetPitch=kind==='bowling'?1.12:1.2;targetDistance=kind==='bowling'?38:28;if(kind==='bowling')targetLook.copy(hobbies.bowling.localToWorld(new THREE.Vector3(0,.5,1)));else targetLook.copy(hobbies.football.localToWorld(new THREE.Vector3(0,.3,0)));document.querySelector('#rotate').setAttribute('aria-pressed','false');}
+  function gameView(kind){officeMode=false;skyMode=false;autoRotate=false;pointers.clear();drag=false;moved=false;targetAngle=kind==='bowling'?Math.PI/2:0;targetPitch=kind==='bowling'?1.12:1.2;targetDistance=kind==='bowling'?38:28;if(kind==='bowling')targetLook.copy(hobbies.bowling.localToWorld(new THREE.Vector3(0,.5,1)));else targetLook.copy(hobbies.football.localToWorld(new THREE.Vector3(0,.3,0)));angle=targetAngle;pitch=targetPitch;distance=targetDistance;lookAt.copy(targetLook);document.querySelector('#rotate').setAttribute('aria-pressed','false');}
   function focus(kind){skyMode=false;const point=hotspotAnchors[kind]||new THREE.Vector3(1,5,0);officeMode=false;const room=!!officeObjects[kind];targetAngle=room?.12:.5;targetPitch=room?.28:.4;targetDistance=room?10:kind==='robotics'?11:kind==='vision'?23:31;targetLook.copy(point).add(new THREE.Vector3(room?3:kind==='robotics'?3.5:9,0,0));autoRotate=false;}
   function finishDeparture(){if(!departure)return;const done=departure.done,sequence=departure.kind==='domestic'?railBoarding:boarding;departure=null;sequence.animate(sequence.duration);skyFade.style.transition='none';skyFade.style.opacity='1';done();skyFade.getBoundingClientRect();skyFade.style.transition='opacity .8s ease-out';skyFade.style.opacity='0';}
   function office(){skyMode=false;officeMode=true;targetAngle=.12;targetPitch=.32;targetDistance=mobile?11:10;targetLook.set(-7.8,1.35,5.25);autoRotate=false;}
