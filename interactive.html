@@ -7,8 +7,8 @@
   <title>Sangmin Lee — Construction, in motion</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600&family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="experience.css?v=20261014-groundfix">
-  <link rel="stylesheet" href="record-viewer.css?v=20261014-groundfix">
+  <link rel="stylesheet" href="experience.css?v=20261014-domestic">
+  <link rel="stylesheet" href="record-viewer.css?v=20261014-domestic">
 </head>
 <body>
   <a class="skip-link" href="#research-controls">Skip to research</a>
@@ -32,6 +32,7 @@
         <button class="hotspot office-hotspot" data-open="patents" data-scene-key="patents"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="patents">Patent applications</span></button>
         <button class="hotspot office-hotspot" data-open="software" data-scene-key="software"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="software">Software registration</span></button>
         <button class="hotspot plane-hotspot" id="airplane-link" data-scene-key="airplane"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="conferences">International conferences</span></button>
+        <button class="hotspot train-hotspot" id="train-link" data-scene-key="train"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="domestic">Domestic conferences · KTX</span></button>
       </div>
       <div class="scene-tools"><button id="zoom-in" aria-label="Zoom in">＋</button><button id="zoom-out" aria-label="Zoom out">−</button><button id="rotate" aria-pressed="false" data-i18n="rotate">Rotate view</button><button id="reset" data-i18n="reset">Reset view</button><button id="sky-view">☀ Sun &amp; Moon</button></div>
       <button id="departure-skip" class="departure-skip" data-i18n="skipFlight" hidden>Skip boarding &amp; flight</button>
@@ -50,15 +51,21 @@
         </article>
         <nav class="journey-stops" aria-label="Conference destinations"><button id="journey-prev" aria-label="Previous conference">‹</button><button data-conference="ccc"><strong>CCC 2025</strong><small>Zadar, Croatia</small></button><button data-conference="isarc"><strong>ISARC 2025</strong><small>Montréal, Canada</small></button><button data-conference="ec3"><strong>EC³ 2026</strong><small>Corfu, Greece</small></button><button id="journey-next" aria-label="Next conference">›</button></nav>
       </section>
+      <section id="domestic-view" class="journey-view domestic-view" aria-labelledby="domestic-title" hidden>
+        <div class="journey-heading"><button id="domestic-back">← Back to the site</button><h2 id="domestic-title">Research around Korea</h2><p id="domestic-hint"></p></div>
+        <div id="domestic-labels" class="conference-map-labels"></div>
+        <article class="journey-card domestic-card" aria-live="polite"><div class="domestic-summary"><span>KTX · KOREA</span><p id="domestic-route"></p></div><div class="conference-details"><p id="domestic-date"></p><h3 id="domestic-name"></h3><p id="domestic-venue"></p><h4 id="domestic-related">Conference papers</h4><ol id="domestic-papers" class="publication-list"></ol><a id="domestic-source" target="_blank" rel="noopener noreferrer"></a></div></article>
+        <nav class="journey-stops domestic-stops" aria-label="Domestic conferences"><button data-domestic-event="kicem25"><strong>KICEM 2025</strong><small></small></button><button data-domestic-event="aik25"><strong>AIK 2025</strong><small></small></button><button data-domestic-event="kic25"><strong>KIC 2025</strong><small></small></button><button data-domestic-event="kic24"><strong>KIC 2024</strong><small></small></button><button data-domestic-event="aik24"><strong>AIK 2024</strong><small></small></button><button data-domestic-event="kicem24"><strong>KICEM 2024</strong><small></small></button></nav><div class="domestic-nav"><button id="domestic-prev" aria-label="Previous domestic conference">←</button><button id="domestic-next" aria-label="Next domestic conference">→</button></div>
+      </section>
     </section>
-    <section class="index-bar"><button class="profile-link" data-open="about"><span class="status-dot"></span><span data-i18n="student">Master's student · SeoulTech</span></button><div><button data-open="projects" data-i18n="projects">R&amp;D projects</button><button data-open="ip" data-i18n="ip">Patents &amp; software</button><button data-open="awards" data-i18n="awards">Awards</button></div><a href="mailto:lsm010714@seoultech.ac.kr" data-i18n="contact">Get in touch ↗</a></section>
+    <section class="index-bar"><button class="profile-link" data-open="about"><span class="status-dot"></span><span data-i18n="student">Master's student · SeoulTech</span></button><div><button data-open="projects" data-i18n="projects">R&amp;D projects</button><button data-open="ip" data-i18n="ip">Patents &amp; software</button><button data-open="awards" data-i18n="awards">Awards</button></div><div class="travel-links"><button id="domestic-access" data-i18n="domestic">Domestic conferences · KTX</button><button id="overseas-access" data-i18n="conferences">International conferences</button></div><a href="mailto:lsm010714@seoultech.ac.kr" data-i18n="contact">Get in touch ↗</a></section>
   </main>
   <aside class="detail-panel" id="detail-panel" role="dialog" aria-modal="true" aria-labelledby="panel-title" hidden>
     <div class="panel-top"><span id="panel-kind"></span><div class="panel-actions"><button id="panel-language">한국어</button><button id="close-panel" aria-label="Close details">×</button></div></div>
     <nav class="panel-research-nav" aria-label="Switch research area"><button data-research="robotics" data-i18n="robotics">Construction robotics</button><button data-research="vision" data-i18n="vision">Computer vision</button><button data-research="digital" data-i18n="digital">Digital construction</button></nav>
     <div class="panel-scroll"><h2 id="panel-title"></h2><div id="panel-body"></div></div>
   </aside>
-  <script type="module" src="experience.js?v=20261014-groundfix"></script>
+  <script type="module" src="experience.js?v=20261014-domestic"></script>
   <script src="page-transition.js"></script>
 </body>
 </html>

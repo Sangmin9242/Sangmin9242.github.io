@@ -41,7 +41,7 @@ export function boardingSequence({world,researcher,avatar,plane,box,beam}){
   const frame=new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(border,true),160,.005,6,true),new THREE.MeshStandardMaterial({color:0x8a9291,metalness:.7,roughness:.4}));plane.add(frame);
   box(door,[.012,.008,.07],[-.244,.59,.68],0x59656a,{metalness:.8});
   const cabin=new THREE.Group();plane.add(cabin);box(cabin,[.4,.009,.29],[-.03,.36,.62],0x44505b);box(cabin,[.01,.44,.29],[.14,.60,.62],0x172631);
-  const walk=new THREE.CatmullRomCurve3([pickup,new THREE.Vector3(-8,0,10),new THREE.Vector3(-27,0,10),bottom.clone().add(new THREE.Vector3(0,0,1.5)),bottom]);
+  const walk=new THREE.CatmullRomCurve3([pickup,new THREE.Vector3(-8,0,10),new THREE.Vector3(plane.position.x-5,0,10),bottom.clone().add(new THREE.Vector3(0,0,1.5)),bottom]);
   const duration=15.8,data=document.querySelector('#scene');data.dataset.planeScale=String(plane.scale.x);data.dataset.boardingDoorHeight=String(.49*plane.scale.y);data.dataset.boardingDoor='curved-aperture';
   plane.updateMatrixWorld(true);
   const fuselage=plane.userData.fuselage,ray=new THREE.Raycaster();let apertureClear=true;
@@ -74,5 +74,5 @@ export function boardingSequence({world,researcher,avatar,plane,box,beam}){
     person.visible=false;stairRoot.visible=false;door.position.set(0,0,0);cabin.visible=false;data.dataset.boardingFloorVisible='false';data.dataset.luggageState='boarded';return {point:plane.position.clone(),phase:'boarded',flightElapsed:elapsed-duration};
   }
   function reset(){lower.rotation.x=0;stairs.rotation.x=0;rails.forEach(r=>r.scale.y=1);person.visible=false;avatar.visible=true;person.userData.towing=false;world.add(luggage);luggage.position.copy(pickup);luggage.rotation.set(0,0,0);luggage.scale.setScalar(1);stairRoot.visible=false;door.position.set(0,0,0);cabin.visible=false;data.dataset.boardingFloorVisible='false';data.dataset.luggageState='parked';}
-  stairRoot.visible=false;cabin.visible=false;return {duration,animate,start(){person.visible=true;avatar.visible=false;},reset};
+  stairRoot.visible=false;cabin.visible=false;return {duration,animate,luggage,start(){person.visible=true;avatar.visible=false;},reset};
 }

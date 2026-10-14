@@ -42,3 +42,10 @@ ES modules and CV loading require HTTP. WebGL rendering is optional; the researc
 - `construction-workers.js`: two construction workers with safety vests, yellow helmets and dual-lens helmet-mounted 360 cameras. They walk along bounded paths on open floors; reduced-motion users see stationary workers.
 
 Responsive layout: laptops/tablets/phones at widths up to 1100px use separate flowing content, model viewport and wrapping navigation controls. Wide views place labels away from reserved UI and other labels. Conference labels use the same collision-avoidance approach. Archives scroll within the viewport.
+
+## Domestic conference journey
+
+- `ktx-train.js` and `train-boarding.js`: KTX-inspired three-car train, suitcase pickup, platform boarding through sliding doors, door closure and departure. Aircraft and runway sit beside the rail platform; each journey restores its vehicle and shared luggage on return.
+- `domestic-events.js` and `domestic-journey.js`: all seven domestic conference papers from the CV, grouped into six events in Seoul, Gyeongju, Gunsan and Seogwipo. English and Korean paper entries are loaded from the matching CV. Official event pages are linked in each card.
+- `assets/conferences/korea-50m.geojson`: South Korea geometry extracted from [Natural Earth 1:50m admin-0 countries](https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_50m_admin_0_countries.geojson), public domain. Includes Jeju and coastal islands.
+- Map paths are illustrative connections, not actual travel itineraries or operational KTX service routes. The Jeju selection stops the train on the mainland and uses a separate island connector.

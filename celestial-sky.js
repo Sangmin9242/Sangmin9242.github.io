@@ -31,9 +31,9 @@ export function celestialSky({world,box,getLanguage}){
     const pool=new THREE.Mesh(new THREE.PlaneGeometry(1,1),new THREE.MeshBasicMaterial({map:halo,color,transparent:true,opacity:.28,depthWrite:false,blending:THREE.AdditiveBlending}));pool.rotation.x=-Math.PI/2;pool.position.y=.018;fixture.add(pool);
     runwayLights.push({material,glow,pool});
   }
-  for(let z=-32;z<=32;z+=4)for(const x of [-30.65,-15.35])inset(x,z,0xffe9b9);
-  for(let z=-30;z<=30;z+=3)inset(-23,z,0xe9f4ff);
-  for(const sign of [-1,1])for(let dx=-6;dx<=6;dx+=1.5){inset(-23+dx,sign*33.8,0x70e6ae);inset(-23+dx,sign*34.6,0xff6c60);}
+  for(let z=-32;z<=32;z+=4)for(const x of [-51.65,-36.35])inset(x,z,0xffe9b9);
+  for(let z=-30;z<=30;z+=3)inset(-44,z,0xe9f4ff);
+  for(const sign of [-1,1])for(let dx=-6;dx<=6;dx+=1.5){inset(-44+dx,sign*33.8,0x70e6ae);inset(-44+dx,sign*34.6,0xff6c60);}
   let moonMinute=-1,moonData=null;
   function update({now,day,azimuth,altitude}){const language=getLanguage(),position=SunCalc.getMoonPosition(now,37.5665,126.978),illumination=SunCalc.getMoonIllumination(now),minute=Math.floor(now.getTime()/60000);if(minute!==moonMinute){moonMinute=minute;moonData=moonImage(illumination.phase);}
     const sunPosition=SunCalc.getPosition(now,37.5665,126.978),sunDirection=direction(sunPosition.azimuth,sunPosition.altitude),moonDirection=direction(position.azimuth,position.altitude);
