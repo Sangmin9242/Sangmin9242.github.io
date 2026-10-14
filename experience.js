@@ -2,17 +2,18 @@ import * as THREE from './vendor/three.module.js';
 import { surface, daylightEnvironment, screenTexture, pbrTextures } from './scene-materials.js';
 import { sprayRobot } from './spray-robot.js?v=20261014-coating';
 import { airplane } from './airplane.js?v=20261014-strut';
-import { domesticJourney } from './domestic-journey.js?v=20261014-night-ferry';
+import { domesticJourney } from './domestic-journey.js?v=20261014-hobbies';
 import { ktxTrain } from './ktx-train.js';
 import { trainBoarding } from './train-boarding.js';
-import { conferenceJourney } from './conference-journey.js?v=20261014-night-ferry';
+import { conferenceJourney } from './conference-journey.js?v=20261014-hobbies';
+import { hobbyWorld } from './hobby-world.js?v=20261014-hobbies';
 import { researchOffice } from './research-office.js';
 import { responsiveLabels } from './responsive-labels.js';
-import { boardingAvatar } from './boarding-avatar.js?v=20261014-refined';
+import { boardingAvatar } from './boarding-avatar.js?v=20261014-hobbies';
 import { constructionWorkers } from './construction-workers.js?v=20261014-refined';
-import { boardingSequence } from './boarding-sequence.js?v=20261014-night-ferry';
+import { boardingSequence } from './boarding-sequence.js?v=20261014-hobbies';
 import { createRecordViewer } from './record-viewer.js';
-import { seoulEnvironment } from './seoul-environment.js?v=20261014-night-ferry';
+import { seoulEnvironment } from './seoul-environment.js?v=20261014-hobbies';
 
 const text = {
   en: { introLabel:'Construction, in motion', headline:'The site is<br>my laboratory.', intro:'I connect construction-site data with digital technologies to study safer and more efficient ways to build.', explore:'Explore the site <span>↓</span>', about:'About', publications:'Publications', robotics:'Construction robotics', vision:'Computer vision', digital:'Digital construction', roboticsTag:'From motion to execution', visionTag:'From pixels to perception', digitalTag:'From data to the field', sceneLabel:'A field of possibilities', rotate:'Rotate view', reset:'Reset view', hint:'Drag to look around · Select a research point', student:"Master’s student · SeoulTech", projects:'R&D projects', ip:'Patents & software', awards:'Awards', contact:'Get in touch ↗', fallback:'Explore the research areas below.', kind:'Research', related:'Related publications', all:'All publications', cv:'Full CV', loading:'Loading…', loadError:'Please open the full CV to view these records.', roboticsDescription:'Robotic fireproofing spray connects motion planning, spray quality, and the realities of a construction site. My work explores work-area recognition and simulation for robotic execution.', visionDescription:'A camera sees pixels. A robot needs surfaces it can work on. My research uses RGB and RGB-D images to recognize steel members and classify work surfaces for fireproofing spray.', digitalDescription:'From construction inspection to human–robot collaboration, I explore how field data and digital models can support automated construction processes.' },
@@ -26,8 +27,9 @@ let panelRequest = 0;
 let sceneAPI = null;
 let recordViewer = null;
 let journeyOpen = false;let journeyMode="overseas";
-let departing = false;
-text.en.domestic='Domestic conferences · KTX';text.ko.domestic='국내학회 · KTX';text.en.conferences='International conferences';text.ko.conferences='해외학회';text.en.skipFlight='Skip boarding & journey';text.ko.skipFlight='탑승·이동 건너뛰기';Object.assign(text.en,{pauseSpray:'Pause spray',resumeSpray:'Start spray',resetCoat:'Reset coating'});Object.assign(text.ko,{pauseSpray:'분사 일시정지',resumeSpray:'분사 시작',resetCoat:'코팅 초기화'});
+let departing = false;let hobbyFocus=null;
+text.en.domestic='Domestic conferences';text.ko.domestic='국내학회';text.en.conferences='International conferences';text.ko.conferences='해외학회';text.en.skipFlight='Skip boarding & journey';text.ko.skipFlight='탑승·이동 건너뛰기';Object.assign(text.en,{pauseSpray:'Pause spray',resumeSpray:'Start spray',resetCoat:'Reset coating'});Object.assign(text.ko,{pauseSpray:'분사 일시정지',resumeSpray:'분사 시작',resetCoat:'코팅 초기화'});
+Object.assign(text.en,{football:'Football',bowling:'Bowling',hobbies:'Beyond the laboratory',hobbyDescription:'Away from research, I enjoy football and bowling.',backToSite:'Back to the site'});Object.assign(text.ko,{football:'축구',bowling:'볼링',hobbies:'연구 밖의 일상',hobbyDescription:'연구 외에는 축구와 볼링을 즐깁니다.',backToSite:'현장으로 돌아가기'});
 Object.assign(text.en,{office:'Research office',patents:'Patent applications',software:'Software registration'});Object.assign(text.ko,{office:'연구실 둘러보기',patents:'특허 출원',software:'소프트웨어 등록'});
 text.en.hint='Drag to rotate · Right-drag or two-finger drag to pan · Scroll or pinch to zoom';text.ko.hint='드래그로 회전 · 우클릭 또는 두 손가락 드래그로 이동 · 휠 또는 핀치로 확대·축소';
 const panel = document.querySelector('#detail-panel');
@@ -50,6 +52,7 @@ function setLanguage(next) {
   document.querySelector('#zoom-in').setAttribute('aria-label',lang==='ko'?'확대':'Zoom in');
   document.querySelector('#zoom-out').setAttribute('aria-label',lang==='ko'?'축소':'Zoom out');
   document.title = lang === 'ko' ? '이상민 — 현장에서 시작하는 연구' : 'Sangmin Lee — Construction, in motion';
+  if(hobbyFocus)renderHobby();
   if (currentPanel) renderPanel(currentPanel);
   if (journeyOpen) sceneAPI?.refreshJourney();
   recordViewer?.refresh();
@@ -109,7 +112,7 @@ async function renderPanel(kind) {
   }
 }
 function openPanel(kind) {
-  if(departing)return;
+  if(departing)return;closeHobby(false);
   if(journeyOpen) exitJourney();
   if (!currentPanel){lastFocused=document.activeElement;panelReturnOffice=sceneAPI?.isOffice()||false;}
   currentPanel=kind; panel.hidden=false; document.body.classList.add('panel-open');
@@ -119,20 +122,26 @@ function openPanel(kind) {
 }
 function configurePanelInteraction(){if(recordViewer?.isOpen()){document.querySelector('main').inert=true;document.querySelector('header').inert=true;return;}const open=!!currentPanel,modal=innerWidth<=600&&open;panel.setAttribute('aria-modal',String(modal));document.querySelector('main').inert=modal;document.querySelector('header').inert=modal;document.querySelector('.hero-intro').inert=open;document.querySelector('.hotspots').inert=open;document.querySelector('.masthead nav').inert=open;const edge=innerWidth-panel.offsetWidth;document.querySelectorAll('.index-bar button,.index-bar a').forEach(node=>{node.inert=open&&node.getBoundingClientRect().right>edge;});}
 window.addEventListener('resize',configurePanelInteraction);
-function closePanel() { const room=panelReturnOffice;panelReturnOffice=false;currentPanel=null; ++panelRequest; panel.hidden=true; document.body.classList.remove('panel-open');configurePanelInteraction();document.querySelectorAll('.research-controls button,.panel-research-nav button').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-pressed','false');});if(room)sceneAPI?.office();else sceneAPI?.reset();requestAnimationFrame(()=>{if(departing||journeyOpen||currentPanel||recordViewer?.isOpen())return;const target=lastFocused&&getComputedStyle(lastFocused).visibility!=='hidden'?lastFocused:room?document.querySelector('#office-explore'):null;target?.focus({preventScroll:true});}); }
-function openArchive(kind){if(departing)return;if(currentPanel)closePanel();sceneAPI?.office();recordViewer.open(kind);}
+function closePanel() { const room=panelReturnOffice;panelReturnOffice=false;currentPanel=null; ++panelRequest; panel.hidden=true; document.body.classList.remove('panel-open');configurePanelInteraction();document.querySelectorAll('.research-controls button,.panel-research-nav button').forEach(b=>{b.classList.remove('active');b.setAttribute('aria-pressed','false');});if(room)sceneAPI?.office();else sceneAPI?.reset();requestAnimationFrame(()=>{if(departing||journeyOpen||currentPanel||hobbyFocus||recordViewer?.isOpen())return;const target=lastFocused&&getComputedStyle(lastFocused).visibility!=='hidden'?lastFocused:room?document.querySelector('#office-explore'):null;target?.focus({preventScroll:true});}); }
+function openArchive(kind){if(departing)return;closeHobby(false);if(currentPanel)closePanel();sceneAPI?.office();recordViewer.open(kind);}
+
+function renderHobby(){document.querySelector('#hobby-title').textContent=text[lang][hobbyFocus||'hobbies'];document.querySelector('#hobby-description').textContent=text[lang].hobbyDescription;document.querySelectorAll('[data-hobby]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.hobby===hobbyFocus)));}
+function openHobby(kind){if(departing)return;if(journeyOpen)exitJourney();if(currentPanel)closePanel();hobbyFocus=kind;document.body.classList.add('hobby-open');document.querySelector('#hobby-caption').hidden=false;renderHobby();sceneAPI?.hobby(kind);document.querySelector('#hobby-close').focus({preventScroll:true});}
+function closeHobby(restore=true){if(!hobbyFocus)return;hobbyFocus=null;document.body.classList.remove('hobby-open');document.querySelector('#hobby-caption').hidden=true;sceneAPI?.hobby('auto');document.querySelectorAll('[data-hobby]').forEach(b=>b.setAttribute('aria-pressed','false'));if(restore)sceneAPI?.reset();}
+document.querySelectorAll('[data-hobby]').forEach(b=>b.onclick=()=>openHobby(b.dataset.hobby));document.querySelector('#hobby-close').onclick=()=>{const kind=hobbyFocus;closeHobby();document.querySelector('#'+kind+'-access').focus({preventScroll:true});};
+
 document.querySelectorAll('[data-open]').forEach(button=>button.onclick=()=>button.classList.contains('office-hotspot')?openArchive(button.dataset.open):openPanel(button.dataset.open));
 document.querySelectorAll('[data-research]').forEach(button=>button.onclick=()=>openPanel(button.dataset.research));
 document.querySelector('#language').onclick=()=>setLanguage(lang==='en'?'ko':'en');
 document.querySelector('#panel-language').onclick=()=>setLanguage(lang==='en'?'ko':'en');
 document.querySelector('#close-panel').onclick=closePanel;
 document.querySelector('#explore').onclick=()=>openPanel('robotics');
-document.querySelector('#office-explore').onclick=()=>sceneAPI?.office();
-document.querySelector('#reset').onclick=()=>{ closePanel(); sceneAPI?.reset(); };
-document.querySelector('#sky-view').onclick=()=>sceneAPI?.skyView();
+document.querySelector('#office-explore').onclick=()=>{closeHobby(false);sceneAPI?.office();};
+document.querySelector('#reset').onclick=()=>{ closeHobby(false);closePanel(); sceneAPI?.reset(); };
+document.querySelector('#sky-view').onclick=()=>{closeHobby(false);sceneAPI?.skyView();};
 document.querySelector('#zoom-in').onclick=()=>sceneAPI?.zoom(.82);
 document.querySelector('#zoom-out').onclick=()=>sceneAPI?.zoom(1.22);
-function enterJourney(kind="overseas"){if(departing||journeyOpen)return;journeyMode=kind;closePanel();departing=true;document.querySelector('#departure-skip').hidden=false;document.querySelectorAll('.masthead nav button').forEach(b=>b.disabled=true);document.body.classList.add('departing');document.querySelector('.hotspots').inert=true;document.querySelector('.research-controls').inert=true;sceneAPI?.depart(()=>{departing=false;document.querySelector('#departure-skip').hidden=true;document.querySelectorAll('.masthead nav button').forEach(b=>b.disabled=false);document.body.classList.remove('departing');document.querySelector('.hotspots').inert=false;document.querySelector('.research-controls').inert=false;journeyOpen=true;document.body.classList.add('journey-open');sceneAPI.enterJourney(kind);document.body.classList.toggle("domestic-open",kind==="domestic");document.querySelector(kind==="domestic"?'#domestic-back':'#journey-back').focus({preventScroll:true});},kind);}
+function enterJourney(kind="overseas"){if(departing||journeyOpen)return;journeyMode=kind;closeHobby(false);closePanel();departing=true;document.querySelector('#departure-skip').hidden=false;document.querySelectorAll('.masthead nav button').forEach(b=>b.disabled=true);document.body.classList.add('departing');document.querySelector('.hotspots').inert=true;document.querySelector('.research-controls').inert=true;sceneAPI?.depart(()=>{departing=false;document.querySelector('#departure-skip').hidden=true;document.querySelectorAll('.masthead nav button').forEach(b=>b.disabled=false);document.body.classList.remove('departing');document.querySelector('.hotspots').inert=false;document.querySelector('.research-controls').inert=false;journeyOpen=true;document.body.classList.add('journey-open');sceneAPI.enterJourney(kind);document.body.classList.toggle("domestic-open",kind==="domestic");document.querySelector(kind==="domestic"?'#domestic-back':'#journey-back').focus({preventScroll:true});},kind);}
 function exitJourney(){journeyOpen=false;document.body.classList.remove('journey-open','domestic-open');sceneAPI?.exitJourney();document.querySelector(journeyMode==='domestic'?'#train-link':'#airplane-link').focus({preventScroll:true});}
 document.querySelector('#airplane-link').onclick=()=>enterJourney('overseas');document.querySelector('#train-link').onclick=()=>enterJourney('domestic');document.querySelector('#domestic-access').onclick=()=>enterJourney('domestic');document.querySelector('#overseas-access').onclick=()=>enterJourney('overseas');document.querySelector('#domestic-back').onclick=exitJourney;document.querySelector('#departure-skip').onclick=()=>sceneAPI?.finishDeparture();
 document.querySelector('#journey-back').onclick=exitJourney;
@@ -140,6 +149,7 @@ document.querySelector('#rotate').onclick=()=>{ const button=document.querySelec
 document.addEventListener('keydown',event=>{
   if(departing&&event.key==='Escape'){sceneAPI?.finishDeparture();return;}
   if(journeyOpen&&event.key==='Escape'){exitJourney();return;}
+  if(hobbyFocus&&event.key==='Escape'){closeHobby();return;}
   if(panel.hidden) return;
   if(event.key==='Escape') closePanel();
   if(event.key==='Tab'&&panel.getAttribute('aria-modal')==='true') { const focusable=[...panel.querySelectorAll('button,a[href]')].filter(el=>el.getClientRects().length); const first=focusable[0],last=focusable.at(-1); if(event.shiftKey && document.activeElement===first){event.preventDefault();last.focus()}else if(!event.shiftKey && document.activeElement===last){event.preventDefault();first.focus()} }
@@ -194,6 +204,7 @@ function createScene() {
   for(let y=.25;y<10;y+=1.65){box(building,[.8,.07,5.9],[4,y,0],0x74736b);for(const z of [-2.8,0,2.8]){beam(building,[4.3,y,z],[4.3,y+1.65,z],.025,0x9a9a92);beam(building,[3.8,y,z],[4.3,y+1.65,z],.02,0x9a9a92);}line(building,[[4.3,y+.9,-2.8],[4.3,y+.9,2.8]],0x92958b);}
   for(let i=0;i<8;i++)box(building,[.11,1.32,.11],[-3+i*.83,9.1,2.49],0x79715e);
   for(let i=0;i<3;i++)box(building,[1.2,.04,.7],[1.7,10.05,-1.5+i*.9],0x263e51);
+  const hobbies=hobbyWorld({world,reducedMotion:reduceMotion});
   const siteWorkers=constructionWorkers({building,reducedMotion:reduceMotion});
   // Tower crane with a trussed jib.
   const crane=new THREE.Group();crane.position.set(-6.3,0,-3.8);world.add(crane);
@@ -259,7 +270,7 @@ function createScene() {
   const parkedTrain=ktxTrain();parkedTrain.scale.setScalar(1.5);parkedTrain.position.set(-23,.015,-3);world.add(parkedTrain);
   box(world,[2.8,.1,80],[-23,-.125,0],0x75776e);for(const x of [-23.645,-22.355])box(world,[.09,.09,80],[x,-.03,0],0x7b8b97,{metalness:.8});for(let z=-38;z<40;z+=1)box(world,[2.5,.1,.2],[-23,-.13,z],0x635c52);
   box(world,[1.7,.975,30],[-21.19,.3525,-11.5],0x9aa5a8);box(world,[.085,.015,30],[-21.96,.855,-11.5],0xe5c561);
-  const signCanvas=document.createElement('canvas');signCanvas.width=512;signCanvas.height=128;const ctx=signCanvas.getContext('2d');ctx.fillStyle='#123d61';ctx.fillRect(0,0,512,128);ctx.fillStyle='#eef7fa';ctx.font='bold 60px sans-serif';ctx.fillText('KTX',30,80);ctx.font='20px sans-serif';ctx.fillText('DOMESTIC CONFERENCES',185,75);const signMap=new THREE.CanvasTexture(signCanvas);signMap.colorSpace=THREE.SRGBColorSpace;const stationSign=new THREE.Mesh(new THREE.PlaneGeometry(2.4,.6),new THREE.MeshStandardMaterial({map:signMap,emissive:0xffffff,emissiveMap:signMap,emissiveIntensity:.3}));stationSign.rotation.y=Math.PI/2;stationSign.position.set(-20.2,2.2,-5);world.add(stationSign);for(const z of [-6,-4])beam(world,[-20.2,.84,z],[-20.2,2.5,z],.045,0x435b6e);
+  const signCanvas=document.createElement('canvas');signCanvas.width=512;signCanvas.height=128;const ctx=signCanvas.getContext('2d');ctx.fillStyle='#123d61';ctx.fillRect(0,0,512,128);ctx.fillStyle='#eef7fa';ctx.textAlign='center';ctx.font='bold 60px sans-serif';ctx.font='32px sans-serif';ctx.fillText('Domestic conferences',256,78);const signMap=new THREE.CanvasTexture(signCanvas);signMap.colorSpace=THREE.SRGBColorSpace;const stationSign=new THREE.Mesh(new THREE.PlaneGeometry(2.4,.6),new THREE.MeshStandardMaterial({map:signMap,emissive:0xffffff,emissiveMap:signMap,emissiveIntensity:.3}));stationSign.rotation.y=Math.PI/2;stationSign.position.set(-20.2,2.2,-5);world.add(stationSign);for(const z of [-6,-4])beam(world,[-20.2,.84,z],[-20.2,2.5,z],.045,0x435b6e);
   const railBoarding=trainBoarding({world,avatar,train:parkedTrain,luggage:boarding.luggage,box});
 
   const skyFade=document.createElement('div');skyFade.className='departure-sky';document.querySelector('.world').append(skyFade);
@@ -280,6 +291,7 @@ function createScene() {
   const light=new THREE.PointLight(0x9cecf5,4,10);light.position.set(0,2.6,2.8);scene.add(light);
   const hotspotAnchors={robotics:new THREE.Vector3(-.8,2.7,3.4),vision:new THREE.Vector3(7.4,3.8,5),digital:new THREE.Vector3(3,8.4,1.8),avatar:new THREE.Vector3(-7.8,2.8,5.25),airplane:new THREE.Vector3(-44,2.7,-3),train:new THREE.Vector3(-23,2.8,-3)};
   researcher.updateMatrixWorld(true);for(const [kind,object] of Object.entries(officeObjects)){hotspotAnchors[kind]=object.localToWorld(new THREE.Vector3(0,kind==='awards'?.4:1.5,0));}
+  Object.assign(hotspotAnchors,hobbies.anchors);
   const hotspotButtons=[...document.querySelectorAll('.hotspot')];
   let width=1,height=1,mobile=false,officeMode=false,skyMode=false,autoRotate=false,drag=false,moved=false,angle=.61,targetAngle=.61,pitch=.52,targetPitch=.52,distance=42,targetDistance=42;
   const lookAt=new THREE.Vector3(-4,4,8),targetLook=new THREE.Vector3(-4,4,8);
@@ -295,11 +307,12 @@ function createScene() {
     document.querySelector('#rotate').setAttribute('aria-pressed','false');
   }
   function zoom(factor){targetDistance=THREE.MathUtils.clamp(targetDistance*factor,journeyOpen?8:officeMode?3:9,journeyOpen?22:110);}
-  function calendarFocus(){skyMode=false;officeMode=true;targetAngle=.12;targetPitch=.12;targetDistance=4.8;targetLook.copy(seoulLive.calendarPosition());autoRotate=false;}
+  function calendarFocus(){closeHobby(false);skyMode=false;officeMode=true;targetAngle=.12;targetPitch=.12;targetDistance=4.8;targetLook.copy(seoulLive.calendarPosition());autoRotate=false;}
+  function hobby(kind){hobbies.select(kind);container.dataset.hobbyFocus=kind;if(kind==='auto')return;officeMode=false;skyMode=false;autoRotate=false;targetAngle=.2;targetPitch=.65;targetDistance=mobile?22:21;targetLook.copy(hobbies.anchors[kind]);if(!mobile)targetLook.x-=2;document.querySelector('#rotate').setAttribute('aria-pressed','false');}
   function focus(kind){skyMode=false;const point=hotspotAnchors[kind]||new THREE.Vector3(1,5,0);officeMode=false;const room=!!officeObjects[kind];targetAngle=room?.12:.5;targetPitch=room?.28:.4;targetDistance=room?10:kind==='robotics'?11:kind==='vision'?23:31;targetLook.copy(point).add(new THREE.Vector3(room?3:kind==='robotics'?3.5:9,0,0));autoRotate=false;}
   function finishDeparture(){if(!departure)return;const done=departure.done,sequence=departure.kind==='domestic'?railBoarding:boarding;departure=null;sequence.animate(sequence.duration);skyFade.style.transition='none';skyFade.style.opacity='1';done();skyFade.getBoundingClientRect();skyFade.style.transition='opacity .8s ease-out';skyFade.style.opacity='0';}
   function office(){skyMode=false;officeMode=true;targetAngle=.12;targetPitch=.32;targetDistance=mobile?11:10;targetLook.set(-7.8,1.35,5.25);autoRotate=false;}
-  function resize(){width=container.clientWidth;height=container.clientHeight;mobile=width<=600;renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix();reset();if(mobile){lookAt.copy(targetLook);distance=targetDistance;}if(currentPanel)focus(currentPanel);}
+  function resize(){width=container.clientWidth;height=container.clientHeight;mobile=width<=600;renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix();reset();if(mobile){lookAt.copy(targetLook);distance=targetDistance;}if(currentPanel)focus(currentPanel);else if(hobbyFocus)hobby(hobbyFocus);}
   const observer=new ResizeObserver(resize);observer.observe(container);
   const pointers=new Map();let pinchDistance=0,dragTravel=0;
   function pan(dx,dy){const scale=2*targetDistance*Math.tan(THREE.MathUtils.degToRad(camera.fov/2))/Math.max(height,1);const right=new THREE.Vector3(1,0,0).applyQuaternion(camera.quaternion),up=new THREE.Vector3(0,1,0).applyQuaternion(camera.quaternion);targetLook.addScaledVector(right,-dx*scale).addScaledVector(up,dy*scale);}
@@ -310,7 +323,7 @@ function createScene() {
   renderer.domElement.addEventListener('pointerup',release);renderer.domElement.addEventListener('pointercancel',release);
   document.querySelector('.world').addEventListener('wheel',event=>{if(departing){event.preventDefault();return;}if(event.target.closest('.journey-card,.research-controls,.journey-stops,.hero-intro'))return;event.preventDefault();zoom(Math.exp(THREE.MathUtils.clamp(event.deltaY,-300,300)*.0015));},{passive:false});
   const raycaster=new THREE.Raycaster();const pointer=new THREE.Vector2();
-  renderer.domElement.addEventListener('click',event=>{if(departing||moved||currentPanel)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);if(journeyOpen){const hit=raycaster.intersectObjects(activeJourney().pins)[0];if(hit){if(journeyMode==='domestic')domestic.selectCity(hit.object.userData.city);else journey.select(hit.object.userData.event);}return;}const hits=[];for(const [group,kind] of [[researcher,'avatar'],[parkedPlane,'airplane'],[parkedTrain,'train'],[robot,'robotics'],[sensor,'vision'],[building,'digital'],[crane,'digital']]){const hit=raycaster.intersectObject(group,true)[0];if(hit){let choice=kind;if(kind==='avatar'){for(let n=hit.object;n&&n!==researcher;n=n.parent){if(n.userData.calendar){choice='calendar';break;}if(n.userData.panel){choice=n.userData.panel;break;}}}hits.push({distance:hit.distance,kind:choice});}}hits.sort((a,b)=>a.distance-b.distance);if(hits[0]?.kind==='avatar'){location.assign(document.querySelector('#avatar-link').href);}else if(hits[0]?.kind==='calendar')calendarFocus();else if(hits[0]?.kind==='airplane')enterJourney('overseas');else if(hits[0]?.kind==='train')enterJourney('domestic');else if(hits.length){if(officeObjects[hits[0].kind])openArchive(hits[0].kind);else openPanel(hits[0].kind);}});
+  renderer.domElement.addEventListener('click',event=>{if(departing||moved||currentPanel)return;const rect=renderer.domElement.getBoundingClientRect();pointer.set((event.clientX-rect.left)/rect.width*2-1,-(event.clientY-rect.top)/rect.height*2+1);raycaster.setFromCamera(pointer,camera);if(journeyOpen){const hit=raycaster.intersectObjects(activeJourney().pins)[0];if(hit){if(journeyMode==='domestic')domestic.selectCity(hit.object.userData.city);else journey.select(hit.object.userData.event);}return;}const hits=[];for(const [group,kind] of [[researcher,'avatar'],[parkedPlane,'airplane'],[parkedTrain,'train'],[robot,'robotics'],[sensor,'vision'],[building,'digital'],[crane,'digital'],[hobbies.football,'football'],[hobbies.bowling,'bowling']]){const hit=raycaster.intersectObject(group,true)[0];if(hit){let choice=kind;if(kind==='avatar'){for(let n=hit.object;n&&n!==researcher;n=n.parent){if(n.userData.calendar){choice='calendar';break;}if(n.userData.panel){choice=n.userData.panel;break;}}}hits.push({distance:hit.distance,kind:choice});}}hits.sort((a,b)=>a.distance-b.distance);if(hits[0]?.kind==='avatar'){location.assign(document.querySelector('#avatar-link').href);}else if(hits[0]?.kind==='calendar')calendarFocus();else if(hits[0]?.kind==='airplane')enterJourney('overseas');else if(hits[0]?.kind==='train')enterJourney('domestic');else if(['football','bowling'].includes(hits[0]?.kind))openHobby(hits[0].kind);else if(hits.length){if(officeObjects[hits[0].kind])openArchive(hits[0].kind);else openPanel(hits[0].kind);}});
   let previous=performance.now();
   function animate(now){const delta=Math.min((now-previous)/1000,.05);previous=now;const t=now/1000;
     if(autoRotate&&!drag&&!currentPanel)targetAngle+=delta*.1;
@@ -321,7 +334,7 @@ function createScene() {
     if(departure){const total=t-departure.started;const sequence=departure.kind==='domestic'?railBoarding:boarding;const board=sequence.animate(total);const elapsed=board.flightElapsed;if(total<sequence.duration){const blend=THREE.MathUtils.smoothstep(total,0,.8);camera.position.copy(departure.camera).lerp(board.point.clone().add(board.cameraOffset||new THREE.Vector3(3,2.2,5)),blend);camera.lookAt(departure.look.clone().lerp(board.point,blend));camera.clearViewOffset();container.dataset.boardingCameraPosition=JSON.stringify(camera.position.toArray());container.dataset.view=board.phase;container.dataset.boardingPhase=board.phase;container.dataset.avatarPosition=JSON.stringify(board.point.toArray());departure.boardLook=board.point.clone();departure.boardCamera=camera.position.clone();}else if(departure.kind==='domestic'){const travel=1.5*elapsed*elapsed;parkedTrain.position.set(-23,.015,-3+travel);const follow=parkedTrain.position.clone().add(new THREE.Vector3(8,4,10));const blend=THREE.MathUtils.smoothstep(elapsed,0,1);camera.position.copy(departure.boardCamera||departure.camera).lerp(follow,blend);camera.lookAt((departure.boardLook||departure.look).clone().lerp(parkedTrain.position.clone().add(new THREE.Vector3(0,1.5,0)),blend));camera.clearViewOffset();container.dataset.view='train-departure';container.dataset.trainForward=String(parkedTrain.position.z);skyFade.style.opacity=String(THREE.MathUtils.smoothstep(elapsed,3.7,5));if(elapsed>=5)finishDeparture();}else{if(!departure.flightCamera){departure.flightCamera=departure.boardCamera?.clone()||camera.position.clone();departure.flightLook=departure.boardLook?.clone()||lookAt.clone();}const travel=2.2*elapsed*elapsed;const lift=THREE.MathUtils.smoothstep(elapsed,2.2,3.5);const nosePitch=lift*.2;const airborne=Math.max(0,travel-2.2*2.2*2.2);parkedPlane.position.set(-44,-.06+airborne*Math.tan(nosePitch),-3+travel);parkedPlane.rotation.set(-nosePitch,0,0,'YXZ');const gear=parkedPlane.position.y>1.2?THREE.MathUtils.clamp((elapsed-3.3)/1.3,0,1):0;parkedPlane.userData.setGear(gear);container.dataset.gearProgress=String(gear);container.dataset.gearVisible=String(parkedPlane.userData.gearVisible);container.dataset.flightPhase=gear===1?'gear-up':gear>0?'gear-retracting':lift>0?'climbing':'rolling';const following=parkedPlane.position.clone().add(new THREE.Vector3(mobile?-10:-9,mobile?5:4,mobile?16:13));const blend=THREE.MathUtils.smoothstep(elapsed,0,1);camera.position.copy(departure.flightCamera).lerp(following,blend);camera.lookAt(departure.flightLook.clone().lerp(parkedPlane.position.clone().add(new THREE.Vector3(1,.7,0)),blend));camera.clearViewOffset();skyFade.style.opacity=String(THREE.MathUtils.smoothstep(elapsed,5.4,6.5));container.dataset.view='takeoff';container.dataset.planeAltitude=String(parkedPlane.position.y);container.dataset.planeForward=String(parkedPlane.position.z);container.dataset.planePitch=String(nosePitch);if(elapsed>=6.5)finishDeparture();}}
     if(!reduceMotion){scan.position.y=.6+(Math.sin(t*.7)*.5+.5)*2.1;trail.position.copy(path.getPointAt((t*.035)%1));hoist.position.y=Math.sin(t*.3)*.18;}
     recognition.visible=currentPanel!=='robotics';
-    sprayer.animate(t);siteWorkers.animate(t);
+    sprayer.animate(t);siteWorkers.animate(t);hobbies.animate(t);
     activeJourney().animate(t);
     seoulLive.animate(t);
     container.dataset.officeMode=String(officeMode);if(!departure)container.dataset.view=journeyOpen?'journey':'site';container.dataset.orbitPitch=String(pitch);container.dataset.orbitAngle=String(angle);container.dataset.orbitDistance=String(distance);container.dataset.orbitTarget=JSON.stringify(lookAt.toArray());
@@ -332,6 +345,6 @@ function createScene() {
   }
   renderer.setAnimationLoop(animate);resize();lookAt.copy(targetLook);
   renderer.domElement.addEventListener('webglcontextlost',event=>{event.preventDefault();document.querySelector('.scene-fallback').hidden=false;document.querySelector('#hotspots').hidden=true;});
-  return {reset,focus,zoom,office,skyView,finishDeparture,refreshEnvironment:seoulLive.refresh,sprayRunning:sprayer.isRunning,sprayToggle:sprayer.toggle,resetCoating:sprayer.resetCoating,isOffice(){return officeMode;},rotate(value){autoRotate=value;},depart(done,kind="overseas"){autoRotate=false;if(reduceMotion){done();return;}boarding.reset();railBoarding.reset();(kind==='domestic'?railBoarding:boarding).start();skyFade.style.transition='none';departure={kind,started:performance.now()/1000,camera:camera.position.clone(),look:lookAt.clone(),done};},refreshJourney(){activeJourney().render();},enterJourney(kind){journeyMode=kind;world.visible=false;scene.fog=null;activeJourney().open();angle=targetAngle;pitch=targetPitch;distance=targetDistance;lookAt.copy(targetLook);},exitJourney(){activeJourney().close();boarding.reset();railBoarding.reset();parkedPlane.position.set(-44,-.06,-3);parkedPlane.rotation.set(0,0,0);parkedPlane.userData.setGear(0);world.visible=true;scene.fog=new THREE.FogExp2(0x233744,.0035);reset();}};
+  return {reset,focus,zoom,office,skyView,hobby,finishDeparture,refreshEnvironment:seoulLive.refresh,sprayRunning:sprayer.isRunning,sprayToggle:sprayer.toggle,resetCoating:sprayer.resetCoating,isOffice(){return officeMode;},rotate(value){autoRotate=value;},depart(done,kind="overseas"){autoRotate=false;if(reduceMotion){done();return;}boarding.reset();railBoarding.reset();(kind==='domestic'?railBoarding:boarding).start();skyFade.style.transition='none';departure={kind,started:performance.now()/1000,camera:camera.position.clone(),look:lookAt.clone(),done};},refreshJourney(){activeJourney().render();},enterJourney(kind){journeyMode=kind;world.visible=false;scene.fog=null;activeJourney().open();angle=targetAngle;pitch=targetPitch;distance=targetDistance;lookAt.copy(targetLook);},exitJourney(){activeJourney().close();boarding.reset();railBoarding.reset();parkedPlane.position.set(-44,-.06,-3);parkedPlane.rotation.set(0,0,0);parkedPlane.userData.setGear(0);world.visible=true;scene.fog=new THREE.FogExp2(0x233744,.0035);reset();}};
 }
 try {sceneAPI=createScene();}catch(error){console.warn('3D scene unavailable',error);document.querySelector('.scene-fallback').hidden=false;document.querySelector('#hotspots').hidden=true;}

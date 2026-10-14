@@ -49,3 +49,8 @@ Responsive layout: laptops/tablets/phones at widths up to 1100px use separate fl
 - `domestic-events.js` and `domestic-journey.js`: all seven domestic conference papers from the CV, grouped into six events in Seoul, Gyeongju, Gunsan and Seogwipo. English and Korean paper entries are loaded from the matching CV. Official event pages are linked in each card.
 - `assets/conferences/korea-50m.geojson`: South Korea geometry extracted from [Natural Earth 1:50m admin-0 countries](https://github.com/nvkelso/natural-earth-vector/blob/master/geojson/ne_50m_admin_0_countries.geojson), public domain. Includes Jeju and coastal islands.
 - Map paths are illustrative connections, not actual travel itineraries or operational KTX service routes. The Jeju selection stops the train on the mainland and animates a ferry from Mokpo to Jeju.
+
+## Personal sports corner
+
+- `hobby-world.js`: a practice football pitch and open bowling room beside the research site, with one sportswear avatar sharing the researcher's face. The avatar alternates between dribbling/shooting, walking around the room to its open entrance, and bowling with a rolling ball and falling pins. Selecting an activity focuses the camera on that facility while the avatar walks there. Reduced motion shows a static pose.
+- Bilingual Football/Bowling buttons and object picking focus the camera without replacing the CV or conference data. The main building remains the starting view. Sports lights switch with the site's night lighting.
