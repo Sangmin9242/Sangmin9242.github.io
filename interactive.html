@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="record-viewer.css?v=20261014-pet">
   <link rel="stylesheet" href="site-pet.css?v=20261015-road-gallery">
   <link rel="stylesheet" href="visitor-counter.css?v=20261014-pet">
+  <link rel="stylesheet" href="campus-lab.css?v=20261015-campus">
   <link rel="stylesheet" href="car-life.css?v=20261015-driving">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Sangmin Lee">
@@ -41,6 +42,7 @@
       <div class="hero-intro"><p class="intro-label" data-i18n="introLabel">Construction, in motion</p><h1 data-i18n="headline">The site is<br>my laboratory.</h1><p class="intro-description" data-i18n="intro">I connect construction-site data with digital technologies to study safer and more efficient ways to build.</p><button class="explore-button" id="explore" data-i18n="explore">Explore the site <span>↓</span></button><button class="office-button" id="office-explore" data-i18n="office">Research office</button></div>
       <div class="scene-label"><span class="status-dot"></span><span data-i18n="sceneLabel">A field of possibilities</span></div>
       <div id="hotspots" class="hotspots">
+        <button class="hotspot campus-hotspot" data-campus-open data-scene-key="sangsang"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="campus">Sangsang Hall · Lab 526</span></button>
         <button class="hotspot" data-research="robotics"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="robotics">Construction robotics</span></button>
         <button class="hotspot" data-research="vision"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="vision">Computer vision</span></button>
         <button class="hotspot" data-research="digital"><span class="hotspot-dot"></span><span class="hotspot-text" data-i18n="digital">Digital construction</span></button>
@@ -83,14 +85,14 @@
         <nav class="journey-stops domestic-stops" aria-label="Domestic conferences"><button data-domestic-event="kicem25"><strong>KICEM 2025</strong><small></small></button><button data-domestic-event="aik25"><strong>AIK 2025</strong><small></small></button><button data-domestic-event="kic25"><strong>KIC 2025</strong><small></small></button><button data-domestic-event="kic24"><strong>KIC 2024</strong><small></small></button><button data-domestic-event="aik24"><strong>AIK 2024</strong><small></small></button><button data-domestic-event="kicem24"><strong>KICEM 2024</strong><small></small></button></nav><div class="domestic-nav"><button id="domestic-prev" aria-label="Previous domestic conference">←</button><button id="domestic-next" aria-label="Next domestic conference">→</button></div>
       </section>
     </section>
-    <section class="index-bar"><button class="profile-link" data-open="about"><span class="status-dot"></span><span data-i18n="student">Master's student · SeoulTech</span></button><div><button data-open="projects" data-i18n="projects">R&amp;D projects</button><button data-open="ip" data-i18n="ip">Patents &amp; software</button><button data-open="awards" data-i18n="awards">Awards</button></div><div class="hobby-links"><button id="parking-access" data-parking-open data-i18n="parking">Parked cars</button><button id="pet-access" data-pet-open data-i18n="pet">My maltipoo</button><button id="football-access" data-hobby="football" data-i18n="football">Football</button><button id="bowling-access" data-hobby="bowling" data-i18n="bowling">Bowling</button></div><div class="travel-links"><button id="domestic-access" data-i18n="domestic">Domestic conferences</button><button id="overseas-access" data-i18n="conferences">International conferences</button></div><a href="mailto:lsm010714@seoultech.ac.kr" data-i18n="contact">Get in touch ↗</a></section>
+    <section class="index-bar"><button class="profile-link" data-open="about"><span class="status-dot"></span><span data-i18n="student">Master's student · SeoulTech</span></button><div><button data-open="projects" data-i18n="projects">R&amp;D projects</button><button data-open="ip" data-i18n="ip">Patents &amp; software</button><button data-open="awards" data-i18n="awards">Awards</button></div><div class="hobby-links"><button id="campus-access" data-campus-open data-i18n="campus">Sangsang Hall · Lab 526</button><button id="parking-access" data-parking-open data-i18n="parking">Parked cars</button><button id="pet-access" data-pet-open data-i18n="pet">My maltipoo</button><button id="football-access" data-hobby="football" data-i18n="football">Football</button><button id="bowling-access" data-hobby="bowling" data-i18n="bowling">Bowling</button></div><div class="travel-links"><button id="domestic-access" data-i18n="domestic">Domestic conferences</button><button id="overseas-access" data-i18n="conferences">International conferences</button></div><a href="mailto:lsm010714@seoultech.ac.kr" data-i18n="contact">Get in touch ↗</a></section>
   </main>
   <aside class="detail-panel" id="detail-panel" role="dialog" aria-modal="true" aria-labelledby="panel-title" hidden>
     <div class="panel-top"><span id="panel-kind"></span><div class="panel-actions"><button id="panel-language">한국어</button><button id="close-panel" aria-label="Close details">×</button></div></div>
     <nav class="panel-research-nav" aria-label="Switch research area"><button data-research="robotics" data-i18n="robotics">Construction robotics</button><button data-research="vision" data-i18n="vision">Computer vision</button><button data-research="digital" data-i18n="digital">Digital construction</button></nav>
     <div class="panel-scroll"><h2 id="panel-title"></h2><div id="panel-body"></div></div>
   </aside>
-  <script type="module" src="experience.js?v=20261015-driving"></script>
+  <script type="module" src="experience.js?v=20261015-campus"></script>
   <script src="page-transition.js"></script>
   <script type="module" src="visitor-counter.js?v=20261014-pet"></script>
 </body>
