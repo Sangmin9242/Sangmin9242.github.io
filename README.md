@@ -62,3 +62,13 @@ Responsive layout: laptops/tablets/phones at widths up to 1100px use separate fl
 ## Foreground lighting and motion refinement
 
 A flat tiled forecourt occupies X=-17..11 and Z=11..25, with two lamps on the sides and four low path lights. Two floodlights outside the runway edges illuminate its surface, supplementing brighter inset fixtures. These lights switch with the same Seoul sunrise/sunset state. Football actors face their actual running direction; stationary poses turn toward the ball.
+
+
+## Parking and mini games
+
+- `parking-cars.js`: five low procedural vehicle models along the outer forecourt row: Accent (2012) 9095, Mercedes GLC 2380, Grandeur IG 4043, Model Y 1513, Malibu (2015) XXXX. Front/rear plates match. Spaces do not overlap and the office/building remain open in the starting view; orbit or pan to inspect the fleet.
+- Select Football or Bowling, then click Sangmin's avatar or **Play as Sangmin**. Football uses arrow keys and D to shoot; the touch pad and Shoot button provide equivalent controls. The keeper guards the goal and player/keeper bodies cannot overlap.
+- Bowling uses an upward mouse/touch swipe. Horizontal direction and swipe speed control aim/power; sliders and Bowl offer an alternative. A dotted lane guide previews direction. Actual contact and transferred momentum determine fallen pins, surviving pins remain for the second ball, and Next ball prepares the legal rack. Strike/spare/tenth-frame scoring uses `bowling-score.js`. The adjacent player continues her demonstration game independently.
+- `football-game.js` and `bowling-game.js` contain fixed-step planar simulations with animated pin toppling, without an additional physics bundle. They are a browser mini game, not a calibrated simulator.
+- `sports-play.js` isolates gesture/key input from camera orbit, clears held controls on blur/visibility/exit and updates bilingual controls only on changes. Stop playing (or Escape) restores observation; a second Escape closes the sports view. Explicitly started play works with reduced motion while unsolicited motion remains paused.
+- Simulation tests: `node --test tests/*.test.mjs`. Browser verification covers avatar picking, desktop/laptop/mobile, keyboard and touch movement, mouse/touch/cancelled bowling swipes, scores, restart/exit, language switching, and the existing journey/lighting flow.

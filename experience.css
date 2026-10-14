@@ -77,3 +77,14 @@ body.journey-open #sky-view,body.panel-open #sky-view{display:none}
 
 body.hobby-open .research-controls{display:none}body.hobby-open .scene-tools{bottom:40px}body.hobby-open .interaction-hint{bottom:18px}
 @media(max-width:1100px){body.hobby-open .scene-tools,body.hobby-open .interaction-hint{position:static}}
+
+/* Play controls follow the sports scene on smaller screens. */
+#game-start{color:#a5dfc3;border:1px solid #93bdad66;padding:10px 14px;border-radius:4px;margin:4px 0 8px}
+#game-controls{margin-top:12px}#game-instructions{font-size:12px;line-height:1.5;margin:0 0 10px}#game-status{color:#b5ead2;font-variant-numeric:tabular-nums;min-height:22px;margin:8px 0}
+.game-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}#game-controls button{padding:9px 12px;border:1px solid #698c9e77;border-radius:4px;min-height:42px}#game-controls button:hover,#game-pad button.held{background:#315d6c}#game-controls button:disabled{opacity:.4;cursor:default}
+#game-pad{display:grid;grid-template-columns:repeat(3,44px) minmax(72px,1fr);gap:6px;touch-action:none}#game-pad button:first-child{grid-column:2}#game-pad button:nth-child(2){grid-column:1;grid-row:2}#game-pad button:nth-child(3){grid-column:2;grid-row:2}#game-pad button:nth-child(4){grid-column:3;grid-row:2}#football-shoot{grid-column:4;grid-row:1/3;color:#f0c082}
+#bowling-inputs label{display:grid;grid-template-columns:64px minmax(0,1fr);align-items:center;gap:8px;margin:10px 0;font-size:12px}#bowling-inputs input{width:100%;accent-color:#a6d8c4;min-height:28px;cursor:pointer}#bowling-throw{color:#b5ead2}
+.gesture-meter{position:absolute;left:50%;bottom:40px;transform:translateX(-50%);padding:10px 16px;color:#dcf5e9;background:#153244e8;border:1px solid #a6d8c466;border-radius:4px;pointer-events:none;white-space:nowrap;font-size:13px}
+body.game-playing .hotspots,body.game-playing .scene-tools,body.game-playing .interaction-hint,body.game-playing .seoul-status,body.game-playing .scene-label{display:none}body.game-playing .hobby-caption{max-height:calc(100% - 40px);overflow:auto;top:20px}body.game-playing #hobby-description,body.game-playing #hobby-caption>p:first-child{display:none}body.game-playing .hobby-caption h2{font-size:26px;margin-bottom:8px}body.game-playing #hobby-close{display:none}body.game-playing #scene canvas{cursor:default}body.game-playing #scene canvas.throwing{cursor:grabbing}
+@media(min-width:1101px){body.game-playing .hobby-caption{width:280px}body.game-playing .hobby-caption:has(#hobby-scoreboard:not([hidden])){width:min(420px,31vw)}}
+@media(max-width:1100px){body.game-playing .hobby-caption{order:3;max-height:none;overflow:visible;top:auto;margin:12px 5vw 20px}body.game-playing .scene{height:clamp(360px,58svh,600px)}body.game-playing .gesture-meter{position:fixed;bottom:20px;z-index:8}#game-pad{grid-template-columns:repeat(3,48px) minmax(90px,1fr);max-width:400px}#game-controls button{min-height:46px}}

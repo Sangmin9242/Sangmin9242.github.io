@@ -2,10 +2,14 @@ import * as THREE from './vendor/three.module.js';
 import { sportsAvatar } from './sports-avatar.js?v=20261014-bowling-align-bob';
 import { sportsFacilities } from './sports-facilities.js?v=20261014-bowling-align-bob';
 import { scoreBowling, rollLayout, demoPlans } from './bowling-score.js';
+import { createFootballGame } from './football-game.js?v=20261014-play';
+import { createBowlingGame } from './bowling-game.js?v=20261014-play';
 
 export function hobbyWorld({world,reducedMotion,getLanguage=()=> 'en'}){
   const annex=new THREE.Group();annex.name='Sports annex';annex.position.set(19,0,-1);world.add(annex);
   const facility=sportsFacilities(annex),{football,bowling,ball,bowlingBalls,pins,sweepBars}=facility;
+  const pinHomes=pins.map(lane=>lane.map(pin=>pin.position.clone()));
+  const aimLine=new THREE.Line(new THREE.BufferGeometry(),new THREE.LineDashedMaterial({color:0xb9d9c8,dashSize:.30,gapSize:.18,transparent:true,opacity:.8}));aimLine.visible=false;bowling.add(aimLine);
   const gripPoint=new THREE.Vector3();
   const person=sportsAvatar({identity:'sangmin',kit:'football'});annex.add(person);
   const goalkeeper=sportsAvatar({identity:'guest',kit:'football',color:0xba6741});football.add(goalkeeper);
@@ -19,12 +23,16 @@ export function hobbyWorld({world,reducedMotion,getLanguage=()=> 'en'}){
   function currentWalk(){const key=gameTime.toFixed(6);if(key!==preparedWalkKey){preparedWalkKey=key;preparedWalk=makePath([...transitPoints.slice(0,-1),bowlingPosePoint()]);}return preparedWalk;}
 
   let mode='auto',start=performance.now()/1000,transition=null,previous=start,gameTime=0,scoreKey='';
+  const footballGame=createFootballGame(),bowlingGame=createBowlingGame();
+  let play=null,playInput={x:0,z:0},throwStarted=-10,aimValue=0;
+  function setAim(value){aimValue=THREE.MathUtils.clamp(value,-1,1);const endX=-1.15+aimValue*.06*18.29;aimLine.geometry.setFromPoints([new THREE.Vector3(-1.15,.062,8),new THREE.Vector3(endX,.062,facility.head)]);aimLine.computeLineDistances();aimLine.material.color.set(Math.abs(endX+1.15)>.525?0xd99778:0xb9d9c8);}
   const data=document.querySelector('#scene').dataset;
   data.footballPlayers='2';data.bowlingPlayers='2';data.bowlingPartnerGender='female';data.sportsAnnex=JSON.stringify(annex.position.toArray());
   person.position.copy(fieldStart);
   function setKit(kind){const kit=kind==='bowling'?'bowling':'football';if(person.userData.kit!==kit)person.userData.setKit(kit);data.hobbyKit=kit;}
   function facing(direction){turn.setFromAxisAngle(yAxis,Math.atan2(direction.x,direction.z));person.quaternion.slerp(turn,.2);}
   function select(kind){
+    if(play)stopGame();
     if(kind===mode&&transition)return;const now=performance.now()/1000,current=person.position.clone(),target=kind==='bowling'?bowlingPosePoint():fieldStart,points=[current];
     if(current.distanceTo(target)>.35&&!reducedMotion){
       const roomLocal=current.clone().applyMatrix4(roomInverse),inside=roomLocal.x>-3.43&&roomLocal.x<3.43&&roomLocal.z>-12.4&&roomLocal.z<14.4;
@@ -77,6 +85,7 @@ export function hobbyWorld({world,reducedMotion,getLanguage=()=> 'en'}){
     ball.rotation.x=-phase*10;
     const fall=THREE.MathUtils.smoothstep(phase,impact,6.2),clearing=THREE.MathUtils.smoothstep(phase,6.6,7.6);
     pins[lane].forEach((pin,i)=>{
+      pin.position.copy(pinHomes[lane][i]);
       const hit=layout.hit.includes(i);if(done){pin.visible=layout.standing.includes(i)&&!hit;pin.rotation.set(0,0,0);pin.position.y=.042;return;}pin.visible=layout.standing.includes(i)&&!(hit&&phase>6.6);pin.rotation.set(hit?-fall*(1.4+(i%3)*.1):0,0,hit?fall*(i%2?.23:-.23):0);
       pin.position.y=.042+(hit?fall*.065:Math.sin(clearing*Math.PI)*.65);
     });
@@ -85,7 +94,7 @@ export function hobbyWorld({world,reducedMotion,getLanguage=()=> 'en'}){
   }
   function scores(clock){
     const counts=[demoPlans.sangmin,demoPlans.partner].map((plan,i)=>reducedMotion?plan.length:Math.min(plan.length,Math.max(0,Math.floor((clock-i*2-impact)/shotDuration)+1)));
-    const results=[scoreBowling(demoPlans.sangmin.slice(0,counts[0])),scoreBowling(demoPlans.partner.slice(0,counts[1]))],lang=getLanguage(),key=counts.join(',')+lang;
+    const results=[play==='bowling'?bowlingGame.result:scoreBowling(demoPlans.sangmin.slice(0,counts[0])),scoreBowling(demoPlans.partner.slice(0,counts[1]))],lang=getLanguage(),key=counts.join(',')+lang+(play==='bowling'?bowlingGame.rolls.join(',')+'play':'demo');
     data.bowlingSangminScore=String(results[0].total);data.bowlingPartnerScore=String(results[1].total);data.bowlingRollCounts=JSON.stringify(counts);
     if(key===scoreKey)return;scoreKey=key;
     const names=[lang==='ko'?'이상민':'Sangmin',lang==='ko'?'플레이어 2':'Player 2'],ctx=facility.scoreCanvas.getContext('2d');
@@ -100,8 +109,34 @@ export function hobbyWorld({world,reducedMotion,getLanguage=()=> 'en'}){
       });const total=document.createElement('td');total.className='score-total';total.textContent=String(result.total);tr.append(total);tbody?.append(tr);ctx.fillStyle=leading?'#95dcc5':'#ecf0f2';ctx.font='bold 35px sans-serif';ctx.fillText(String(result.total),915,y+28);
     });facility.scoreTexture.needsUpdate=true;
   }
+  function startGame(kind){
+    if(!['football','bowling'].includes(kind))return;
+    play=kind;mode=kind;transition=null;start=performance.now()/1000;previous=start;scoreKey='';playInput={x:0,z:0};throwStarted=-10;
+    facility.setFocus(kind);setKit(kind);footballGame.reset();bowlingGame.reset();setAim(0);data.playMode=kind;
+    renderGame(start,0);
+  }
+  function stopGame(){play=null;playInput={x:0,z:0};aimLine.visible=false;ball.scale.setScalar(1);bowlingBalls[0].scale.setScalar(1);start=performance.now()/1000;scoreKey='';data.playMode='none';data.playBowlingPhase='inactive';}
+  function renderGame(time,delta){
+    if(play==='football'){
+      footballGame.update(delta,playInput);const state=footballGame.state,p=state.player,k=state.keeper;
+      person.position.set(p.x,0,p.z);person.rotation.y=p.heading;person.userData.pose(time*1.4,p.moving);if(p.moving)person.userData.sportRig.upper.rotation.x=.12;person.userData.sportRig.legs[1].leg.rotation.x-=p.kicking*.9;
+      goalkeeper.position.set(k.x,0,k.z);goalkeeper.rotation.y=k.heading;goalkeeper.userData.pose(time,false,.12);ball.scale.setScalar(1.5);ball.position.set(state.ball.x,state.ball.y,state.ball.z);ball.rotation.x-=delta*Math.hypot(state.ball.vx,state.ball.vz)/.18;
+      bowler(partner,1,0,0,false);data.footballPhase=state.phase;data.playPlayer=JSON.stringify(p);data.playShots=String(state.shots);data.playGoals=String(state.goals);data.playBall=JSON.stringify(state.ball);
+    }else{
+      bowlingGame.update(delta);if(world.visible)gameTime=(gameTime+delta)%gameDuration;
+      const phase=bowlingGame.phase,follow=Math.max(0,1-(time-throwStarted)/1.1);person.position.copy(roomPoint(-1.15,9.3));person.rotation.y=Math.PI+bowling.rotation.y;person.userData.pose(time,false,phase==='ready'?.10:follow*.5);person.userData.sportRig.arms[1].arm.rotation.x=phase==='ready'?.25:-follow*.95;
+      aimLine.visible=phase==='ready';
+      person.updateWorldMatrix(true,true);const hand=person.userData.sportRig.arms[1].elbow.getObjectByName('hand');gripPoint.set(0,-.07,.035);hand.localToWorld(gripPoint);bowling.worldToLocal(gripPoint);
+      const b=bowlingGame.ball,mesh=bowlingBalls[0];mesh.scale.setScalar(.15/.108);mesh.visible=phase!=='result'&&phase!=='finished';if(phase==='ready')mesh.position.copy(gripPoint);else mesh.position.set(-1.15+b.x,b.y+.04,b.z);mesh.rotation.x-=delta*Math.hypot(b.vx,b.vz)/.15;
+      bowlingGame.pins.forEach((pin,i)=>{const mesh=pins[0][i];mesh.visible=pin.visible;mesh.position.set(-1.15+pin.x,.042+pin.fall*.065,pin.z);mesh.rotation.set(Math.cos(pin.angle)*pin.fall*Math.PI/2,0,-Math.sin(pin.angle)*pin.fall*Math.PI/2);});sweepBars[0].visible=false;
+      const clock=Math.max(0,gameTime-2);bowler(partner,1,reducedMotion?0:clock%shotDuration,Math.floor(clock/shotDuration),!reducedMotion);
+      data.bowlingPhase=phase;data.playBowlingPhase=phase;data.playBowlingHits=String(bowlingGame.count);data.playBowlingRolls=JSON.stringify(bowlingGame.rolls);data.playBall=JSON.stringify(b);data.playPins=JSON.stringify(bowlingGame.pins.map(p=>({x:p.x,z:p.z,fallen:p.fallen,fall:p.fall,visible:p.visible})));
+    }
+    scores(gameTime);data.hobbyActivity='playing';data.hobbyAvatarPosition=JSON.stringify(person.position.toArray());
+  }
   function animate(time){
     const delta=Math.max(0,time-previous);previous=time;const night=Number(data.streetLights)>0;facility.setLights(night);data.hobbyLights=String(night?3:0);
+    if(play){renderGame(time,document.hidden?0:Math.min(.05,delta));return;}
     data.footballPhase='inactive';data.bowlingPhase='inactive';goalkeeper.userData.pose(time,false,.08);
     if(transition){
       const u=THREE.MathUtils.clamp((time-transition.started)/transition.duration,0,1);person.position.copy(transition.curve.getPointAt(u));facing(transition.curve.getTangentAt(Math.min(u,.999)));person.userData.pose(time,true);
@@ -121,5 +156,6 @@ export function hobbyWorld({world,reducedMotion,getLanguage=()=> 'en'}){
   }
   goalkeeper.position.set(0,0,-6.4);ball.position.set(-.8,.13,3.08);bowler(partner,1,0,0,false);scores(0);
   const anchor=group=>group.localToWorld(new THREE.Vector3(0,1,0));annex.updateMatrixWorld(true);
-  return {football,bowling,animate,select,reset(){select('auto');},anchors:{football:anchor(football),bowling:anchor(bowling)}};
+  data.playMode='none';
+  return {football,bowling,player:person,animate,select,startGame,stopGame,setAim,isPlaying:()=>!!play,focusKind:()=>mode,gameState:()=>play==='football'?footballGame.state:bowlingGame,gamePhase:()=>bowlingGame.phase,setInput(input){playInput=input;},shoot(){return play==='football'&&footballGame.shoot();},throwBall(input){if(play!=='bowling')return false;const thrown=bowlingGame.launch(input);if(thrown)throwStarted=performance.now()/1000;return thrown;},nextBall(){return play==='bowling'&&bowlingGame.nextRoll();},restartGame(){if(play)startGame(play);},reset(){select('auto');},anchors:{football:anchor(football),bowling:anchor(bowling)}};
 }
