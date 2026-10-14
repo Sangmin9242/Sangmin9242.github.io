@@ -1,5 +1,8 @@
 import * as THREE from './vendor/three.module.js';
 import {roadOutline,driveway as D} from './driveway-layout.js?v=20261015-road-gallery';
+import {createCarDriving} from './car-driving.js?v=20261015-driving';
+import {carDriveControls} from './car-drive-controls.js?v=20261015-driving';
+import {roadOutline as drivingOutline,forecourtPads,parkingLampPositions,parkingBollardPositions,drivewayLampSpecs} from './driveway-layout.js?v=20261015-road-lights';
 import { boardingAvatar } from './boarding-avatar.js?v=20261014-refined';
 import { createCarTrip } from './car-trip.js?v=20261015-road-gallery';
 
@@ -52,7 +55,7 @@ function accessRoad(world){
   world.add(group);return group;
 }
 
-export function carLife({world,parking,container,getLanguage=()=> 'en',reducedMotion=false,onSelect,onClose,onBoard,onComplete,onFollow}={}){
+export function carLife({world,parking,container,getLanguage=()=> 'en',reducedMotion=false,onSelect,onClose,onBoard,onComplete,onFollow,onDriving,onRear,getExtraObstacles}={}){
   const cars=parking.cars, trips=new Map();
   for(const record of cars){
     const u=record.group.userData;
@@ -68,13 +71,15 @@ export function carLife({world,parking,container,getLanguage=()=> 'en',reducedMo
   const helmets=rig.upper.children.filter(object=>object.isMesh && object.material?.color?.getHex()===0xdfded3);
   const shoes=rig.legs.map(({knee})=>knee.children.find(object=>object.isMesh && object.geometry.type==='SphereGeometry'));
   const footBounds=new THREE.Box3();
-  let selectedCar=null, activeCar=null, following=false, poseTime=0, lastPhase='';
+  let selectedCar=null, activeCar=null, following=false, poseTime=0, lastPhase='',manual=null,manualRequested=false,manualWheelOffset=0;
   const panel=document.createElement('aside');panel.id='car-panel';panel.className='car-panel';panel.hidden=true;panel.setAttribute('aria-labelledby','car-title');
-  panel.innerHTML='<div class="car-panel-head"><span class="car-eyebrow">PARKING</span><button id="car-close" type="button" aria-label="Close car information">×</button></div><h2 id="car-title"></h2><p class="car-description" id="car-description"></p><div class="car-fleet" role="group"></div><div class="car-actions"><button id="car-board" type="button"></button><button id="car-return" type="button" hidden></button></div><label class="car-follow-label"><input id="car-follow" type="checkbox"><span id="car-follow-text"></span></label><p id="car-status" role="status" aria-live="polite"></p>';
+  panel.innerHTML='<div class="car-panel-head"><span class="car-eyebrow">PARKING</span><button id="car-close" type="button" aria-label="Close car information">×</button></div><h2 id="car-title"></h2><p class="car-description" id="car-description"></p><div class="car-fleet" role="group"></div><div class="car-actions"><button id="car-board" type="button"></button><button id="car-drive-now" type="button" hidden></button><button id="car-return" type="button" hidden></button></div><label class="car-follow-label"><input id="car-follow" type="checkbox"><span id="car-follow-text"></span></label><p id="car-status" role="status" aria-live="polite"></p>';
   (container?.closest('.world') ?? document.querySelector('.world') ?? document.body).append(panel);
-  const query=id=>panel.querySelector(id), title=query('#car-title'),boardButton=query('#car-board'),returnButton=query('#car-return'),followInput=query('#car-follow'),status=query('#car-status');
+  const query=id=>panel.querySelector(id), title=query('#car-title'),boardButton=query('#car-board'),driveButton=query('#car-drive-now'),returnButton=query('#car-return'),followInput=query('#car-follow'),status=query('#car-status');
   const fleet=panel.querySelector('.car-fleet'),fleetButtons=[];
   for(const record of cars){const button=document.createElement('button');button.type='button';button.className='car-fleet-item';button.textContent=record.model;button.dataset.carId=record.id;button.addEventListener('click',()=>select(record.id));fleet.append(button);fleetButtons.push(button);}
+  const driveControls=carDriveControls({container:panel.parentElement,getLanguage,onInput:value=>manual?.setInput(value),onExit:stopDriving,onRear:value=>onRear?.(value)});
+  driveButton.onclick=()=>requestDriving();
   query('#car-close').addEventListener('click',()=>close());
   boardButton.addEventListener('click',()=>board());
   returnButton.addEventListener('click',()=>{trips.get(activeCar?.id)?.returnNow();refresh();});
@@ -82,33 +87,66 @@ export function carLife({world,parking,container,getLanguage=()=> 'en',reducedMo
   panel.addEventListener('keydown',event=>{if(event.key==='Escape'){event.stopPropagation();close();}});
   // Physical beams illuminate the same meshes as the scene's other lights.
   const beams=[];
-  for(const side of [-1,1]){const light=new THREE.SpotLight(0xfff6dc,0,24,.28,.45,1.8),target=new THREE.Object3D();light.position.set(side*.52,.63,1.9);target.position.set(side*.52,.15,15);light.target=target;beams.push({light,target});}
+  for(const side of [-1,1]){const light=new THREE.SpotLight(0xfff6dc,0,24,.28,.45,1.8),target=new THREE.Object3D();light.position.set(side*.52,.63,1.9);target.position.set(side*.52,.15,15);light.target=target;world.add(light,target);beams.push({light,target});}
   function setFollow(value){following=value;followInput.checked=value;onFollow?.(value);}
   function refresh(){
     const ko=getLanguage()==='ko',lang=ko?0:1,trip=trips.get(activeCar?.id ?? selectedCar?.id),s=trip?.state;
     if(selectedCar){title.textContent=selectedCar.model;}
-    query('#car-description').textContent=ko?'작업자가 탑승해 출차하고, 8초 후 돌아와 같은 자리에 주차합니다.':'The worker boards, drives out, waits 8 seconds, then returns to the same parking bay.';
+    query('#car-description').textContent=ko?'탑승 후 직접 운전을 선택하면 방향키로 조작할 수 있습니다. 선택하지 않으면 자동으로 다녀옵니다.':'Select Direct drive after boarding to use the arrow keys. Otherwise the worker takes an automatic return trip.';
     query('#car-close').setAttribute('aria-label',ko?'차량 정보 닫기':'Close car information');
     fleet.setAttribute('aria-label',ko?'차량 선택':'Choose a vehicle');
     boardButton.textContent=ko?(activeCar?'운행 중':'탑승'):(activeCar?'Trip in progress':'Board');boardButton.disabled=!!activeCar || !selectedCar;
-    returnButton.textContent=ko?'지금 복귀':'Return now';returnButton.hidden=s?.phase!=='away';
+    driveButton.hidden=!activeCar||!!manual;driveButton.disabled=manualRequested||!activeCar||['exiting','door-closing-exit','walking-home'].includes(s?.phase);driveButton.textContent=manualRequested?(ko?'운전 전환 준비 중':'Preparing direct drive'):(ko?'직접 운전':'Direct drive');
+    returnButton.textContent=ko?'지금 복귀':'Return now';returnButton.hidden=!!manual||s?.phase!=='away';
     query('#car-follow-text').textContent=ko?'작업자와 차량 따라가기':'Follow the worker and car';followInput.checked=following;followInput.disabled=typeof reducedMotion==='function'?reducedMotion():reducedMotion;
     for(const button of fleetButtons){button.disabled=!!activeCar && button.dataset.carId!==activeCar.id;button.setAttribute('aria-pressed',String(button.dataset.carId===selectedCar?.id));}
-    status.textContent=(phaseText[s?.phase ?? 'idle'] ?? phaseText.idle)[lang];
-    panel.dataset.phase=s?.phase ?? 'idle';
+    status.textContent=manual?(ko?'주행 경로를 따라 복귀 중':'Returning along your driving path'):(phaseText[s?.phase ?? 'idle'] ?? phaseText.idle)[lang];
+    panel.dataset.phase=manual?manual.state.phase==='driving'?'manual-driving':'manual-returning':s?.phase ?? 'idle';
+    driveControls.refresh(manual?.state);
+    container.dataset.carDriving=String(manual?.state.phase==='driving');
   }
   function select(id){
     const record=cars.find(item=>item.id===id);if(!record)return false;
     selectedCar=activeCar ?? record;panel.hidden=false;document.body.classList.add('car-open');refresh();onSelect?.(selectedCar.id);if(activeCar)onFollow?.(following);return true;
   }
-  function close(notify=true){panel.hidden=true;document.body.classList.remove('car-open');if(notify)onClose?.();}
+  function close(notify=true){if(manual?.state.phase==='driving')stopDriving();manualRequested=false;panel.hidden=true;document.body.classList.remove('car-open');if(notify)onClose?.();}
   function board(){
     if(!selectedCar||activeCar)return false;
     const trip=trips.get(selectedCar.id);if(!trip.board())return false;
-    activeCar=selectedCar;activeCar.group.userData.parked=false;lastPhase='';poseTime=0;
+    manualRequested=false;activeCar=selectedCar;activeCar.group.userData.parked=false;lastPhase='';poseTime=0;
     for(const beam of beams){activeCar.group.add(beam.light,beam.target);}
     setFollow(!(typeof reducedMotion==='function'?reducedMotion():reducedMotion));
     apply(trip.state);refresh();onBoard?.(activeCar.id);return true;
+  }
+  function requestDriving(){
+    if(!activeCar||manual)return false;manualRequested=true;
+    const s=trips.get(activeCar.id).state;if(s.inside&&s.door<.001)startDriving();refresh();return true;
+  }
+  function startDriving(){
+    if(!activeCar||manual)return;
+    const checkpoint=trips.get(activeCar.id).state,u=activeCar.group.userData;
+    const obstacles=cars.filter(c=>c.id!==activeCar.id).map(c=>({x:c.group.position.x,z:c.group.position.z,width:c.dimensions.width+.35,length:c.dimensions.length+.08,heading:c.group.rotation.y}));
+    for(const [x,z] of [...parkingLampPositions,...parkingBollardPositions,...drivewayLampSpecs])obstacles.push({x,z,width:.5,length:.5});
+    world.updateMatrixWorld(true);
+    world.traverse(object=>{const g=object.geometry?.parameters;if(!object.isMesh||object.geometry.type!=='BoxGeometry'||!g||g.width>.15||g.depth>.15||g.height<2)return;const b=new THREE.Box3().setFromObject(object);if(b.min.y>.15)return;obstacles.push({x:(b.min.x+b.max.x)/2,z:(b.min.z+b.max.z)/2,width:Math.max(.4,b.max.x-b.min.x),length:Math.max(.4,b.max.z-b.min.z)});});
+    obstacles.push(...(getExtraObstacles?.()||[]));
+    manualWheelOffset=checkpoint.wheelAngle;
+    const modelBounds=new THREE.Box3(),partBounds=new THREE.Box3(),inverse=activeCar.group.matrixWorld.clone().invert();
+    activeCar.group.traverse(object=>{if(!object.isMesh)return;object.geometry.computeBoundingBox();partBounds.copy(object.geometry.boundingBox).applyMatrix4(inverse.clone().multiply(object.matrixWorld));modelBounds.union(partBounds);});
+    const measured=modelBounds.getSize(new THREE.Vector3());
+    // The pavement union keeps the driver clear of the research buildings and sports rooms.
+    const candidate=createCarDriving({car:{...checkpoint.car},...activeCar.dimensions,width:Math.max(activeCar.dimensions.width,measured.x),length:Math.max(activeCar.dimensions.length,measured.z),wheelbase:u.wheelbase,wheelRadius:u.wheelRadius,roadOutline:drivingOutline,forecourtPads,obstacles});
+    if(!candidate.canOccupy())return false;
+    manual=candidate;manualRequested=false;setFollow(false);driveControls.setActive(true);onDriving?.(true);refresh();return true;
+  }
+  function stopDriving(){
+    if(!manual||manual.state.phase!=='driving')return false;
+    driveControls.setActive(false);manual.finish();onDriving?.(false);setFollow(true);refresh();return true;
+  }
+  function drivingState(){
+    const s=trips.get(activeCar.id).state,d=manual.state,c=d.car,seat=activeCar.group.userData.driverSeat;
+    const sn=Math.sin(c.heading),cs=Math.cos(c.heading);
+    return {...s,car:c,worker:{x:c.x+seat.x*cs+seat.z*sn,y:c.y+seat.y,z:c.z-seat.x*sn+seat.z*cs,heading:c.heading,walking:false,crouch:0,seated:1},door:0,inside:true,driverVisible:true,signedSpeed:d.speed,wheelAngle:d.wheelAngle+manualWheelOffset,steering:d.steering,headlights:true,braking:Math.abs(d.speed)<.05,reversing:d.speed<-.01};
   }
   function applyPose(s){
     const w=s.worker;worker.userData.pose(poseTime,w.walking,w.crouch);
@@ -124,7 +162,7 @@ export function carLife({world,parking,container,getLanguage=()=> 'en',reducedMo
   function apply(s){
     const group=activeCar.group;group.position.set(s.car.x,s.car.y,s.car.z);group.rotation.y=s.car.heading;
     group.userData.setDoor?.(s.door);group.userData.setDrive?.({wheelAngle:s.wheelAngle,steering:s.steering,headlights:s.headlights,braking:s.braking,reversing:s.reversing});
-    worker.visible=s.driverVisible;
+    group.userData.manualSteering=s.steering;worker.visible=s.driverVisible;
     if(s.inside){if(worker.parent!==group)group.attach(worker);const local=group.worldToLocal(new THREE.Vector3(s.worker.x,s.worker.y,s.worker.z));worker.position.copy(local);worker.rotation.set(0,0,0);}
     else {if(worker.parent!==world)world.attach(worker);worker.position.set(s.worker.x,s.worker.y,s.worker.z);worker.rotation.set(0,s.worker.heading,0);}
     applyPose(s);
@@ -139,14 +177,23 @@ export function carLife({world,parking,container,getLanguage=()=> 'en',reducedMo
   }
   function update(dt,paused=false){
     if(!activeCar || paused || !Number.isFinite(dt) || dt<=0)return;
-    const trip=trips.get(activeCar.id);poseTime+=dt;trip.update(dt);apply(trip.state);
+    const trip=trips.get(activeCar.id);poseTime+=dt;
+    if(manual){
+      manual.update(dt);apply(drivingState());driveControls.refresh(manual.state);
+      container.dataset.carDriving=String(manual.state.phase==='driving');container.dataset.drivingSpeed=String(manual.state.speed);container.dataset.drivingPosition=JSON.stringify([manual.state.car.x,manual.state.car.y,manual.state.car.z]);
+      if(manual.state.phase==='complete'){container.dataset.drivingReturnPosition=JSON.stringify([manual.state.car.x,manual.state.car.y,manual.state.car.z]);manual=null;apply(trip.state);setFollow(!(typeof reducedMotion==='function'?reducedMotion():reducedMotion));refresh();}
+      return;
+    }
+    if(manualRequested&&trip.state.inside&&trip.state.door<.001&&startDriving())return;
+    trip.update(dt);apply(trip.state);
+    if(manualRequested&&trip.state.inside&&trip.state.door<.001&&startDriving())return;
     if(trip.state.phase!==lastPhase){lastPhase=trip.state.phase;refresh();}
     if(!trip.isActive()){
-      const completed=activeCar;completed.group.userData.parked=true;worker.visible=false;world.attach(worker);for(const beam of beams){beam.light.removeFromParent();beam.target.removeFromParent();}
-      activeCar=null;setFollow(false);refresh();onComplete?.(completed.id);
+      const completed=activeCar;completed.group.userData.parked=true;worker.visible=false;world.attach(worker);for(const beam of beams){beam.light.intensity=0;world.add(beam.light,beam.target);}
+      activeCar=null;manualRequested=false;setFollow(false);refresh();onComplete?.(completed.id);
     }
   }
-  function focusPoint(){const s=trips.get(activeCar?.id)?.state;if(s)return new THREE.Vector3(s.inside?s.car.x:s.worker.x,(s.inside?s.car.y+1:s.worker.y+1),s.inside?s.car.z:s.worker.z);return selectedCar?selectedCar.group.position.clone().add(new THREE.Vector3(0,1,0)):new THREE.Vector3(-4,1,22.45);}
+  function focusPoint(){if(manual)return new THREE.Vector3(manual.state.car.x,manual.state.car.y+1,manual.state.car.z);const s=trips.get(activeCar?.id)?.state;if(s)return new THREE.Vector3(s.inside?s.car.x:s.worker.x,(s.inside?s.car.y+1:s.worker.y+1),s.inside?s.car.z:s.worker.z);return selectedCar?selectedCar.group.position.clone().add(new THREE.Vector3(0,1,0)):new THREE.Vector3(-4,1,22.45);}
   refresh();
-  return {select,close,board,update,refresh,isActive:()=>!!activeCar,selected:()=>selectedCar,focusPoint,getWorker:()=>worker,panel,get tripState(){return trips.get(activeCar?.id ?? selectedCar?.id)?.state ?? null;},anchors:{parking:new THREE.Vector3(-4,1,22.45)}};
+  return {select,close,board,update,refresh,requestDriving,stopDriving,isDriving:()=>manual?.state.phase==='driving',get driveState(){return manual?.state??null;},isActive:()=>!!activeCar,selected:()=>selectedCar,focusPoint,getWorker:()=>worker,panel,get tripState(){return trips.get(activeCar?.id ?? selectedCar?.id)?.state ?? null;},anchors:{parking:new THREE.Vector3(-4,1,22.45)}};
 }
