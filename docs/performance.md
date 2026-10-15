@@ -31,3 +31,25 @@ The robot alone changes from 6,764,896 to 2,424,490 transfer bytes. The six gall
 Install the versions in `package.json`, then run `npm run build` and `npm test`. Commit sources and generated files together. Asset regeneration uses `node scripts/optimize-assets.cjs`; it reads source files and writes separate outputs.
 
 136 automated tests passed. Chrome checks at desktop and mobile widths verified the loading shell, download failure/retry, six-photo gallery, office book page turns, campus portal, overseas/domestic journeys, football aiming/shooting and bowling delivery/pins/scoring. Driving checks covered all five vehicles, current-position parking return and worker exit, plus keyboard/touch controls and mirrors. Separate injected failures verified recovery when CSS fails before the bootstrap starts and when the first WebGL draw throws.
+
+## Runtime follow-up for slower CPUs
+
+Baseline for this follow-up: `f22c088`. Model geometry, material maps, pixel ratio, antialiasing and shadow settings are still unchanged.
+
+- Robot CAD leaves are explicitly marked `rigidStatic=true` only after joint construction. `batchRigidModel` combines safe leaves within the same moving joint assembly, preserving named groups and the complete nozzle subtree. The existing initialized robot changes from 679 meshes to 116, retaining all 184,596 triangles and 12 joints. A real-model comparison checked 234,871 vertices before/after joint rotation, with unchanged UVs/nozzle bounds and at most 0.00001508 m position rounding error.
+- Sports fixtures share equivalent immutable materials and use the existing spatial batching. Roof/wall controls, balls, sweeps and individual pin groups remain independent. The fixture test changes 224 meshes to 118, retaining 23,910 triangles.
+- Hotspot layout reads all dimensions before writing styles, caches stable DOM membership, skips hidden roots and avoids unchanged style writes. Projections and collision placement still update every frame.
+- Zero-intensity street/work/runway and sports spotlights become invisible to the renderer during daytime. Fixtures and night illumination stay unchanged. Sports lighting is prepared before shader compilation so warmup and the first displayed frame use the same active light list.
+
+Controlled local comparison: separate Chrome launches, 1366 × 768, DPR 1, CPU throttled 4×, fixed Seoul date/time/weather, 10-second samples, no concurrent tests or CPU profiler. These simulate slower CPU execution; they do not emulate a weaker GPU or establish a universal minimum PC specification.
+
+| Scene | Before | After |
+| --- | ---: | ---: |
+| Daytime site | 10.8 fps | 17.1 fps |
+| Daytime office | 21.0 fps | 26.2 fps |
+| Nighttime site | 16.1 fps | 17.0 fps |
+| Nighttime office | 27.7 fps | 33.8 fps |
+
+Nighttime main-view draw calls changed from 2,055 to 1,451. Nighttime overall-frame gains were limited despite fewer draw calls; the complete site can still stutter on slower hardware.
+
+The final automated suite passed 154 tests. Fixed-time/reduced-motion visual comparisons checked daytime site/office/robot/bowling and nighttime site/office. Office screenshots were byte-identical; the other images had at most 0.057% of pixels differing by more than 8 RGB levels. Live Chrome checks separately cover moving joints, games and navigation rather than inferring behavior from frozen screenshots.

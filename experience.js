@@ -396,18 +396,20 @@ async function createScene() {
     sprayer.animate(t);siteWorkers.animate(t);hobbies.animate(t);games.refresh();
     activeJourney().animate(t);
     seoulLive.animate(t);hall.setNight(container.dataset.weatherDay!=='true');
-    container.dataset.officeMode=String(officeMode);if(!departure)container.dataset.view=carMotion.isDriving()?'driving':journeyOpen?'journey':'site';container.dataset.orbitPitch=String(pitch);container.dataset.orbitAngle=String(angle);container.dataset.orbitDistance=String(distance);container.dataset.orbitTarget=JSON.stringify(lookAt.toArray());
+    if(container.dataset.officeMode!==String(officeMode))container.dataset.officeMode=String(officeMode);if(!departure)container.dataset.view=carMotion.isDriving()?'driving':journeyOpen?'journey':'site';container.dataset.orbitPitch=String(pitch);container.dataset.orbitAngle=String(angle);container.dataset.orbitDistance=String(distance);container.dataset.orbitTarget=JSON.stringify(lookAt.toArray());
     if(robot.userData.loaded){container.dataset.coatingCoverage=String(robot.userData.coatingCoverage||0);container.dataset.robotJoints=robot.userData.joints;container.dataset.robotNozzle=String(robot.userData.nozzle);container.dataset.robotSpraying=String(robot.userData.spraying);container.dataset.robotMotion=String(robot.userData.animationTime||0);container.dataset.sprayDistance=String(robot.userData.sprayDistance||0);container.dataset.nozzlePosition=JSON.stringify(robot.userData.nozzlePosition||[]);}
     if(carMotion.isDriving())cockpit.update();
     renderer.render(scene,camera);seoulLive.projectSky(camera);
-    activeJourney().updateLabels(camera,width,height,container.offsetTop);
-    responsiveLabels({buttons:hotspotButtons,anchors:hotspotAnchors,camera,width,height,top:container.offsetTop,officeMode});
+    const labelTop=container.offsetTop;
+    activeJourney().updateLabels(camera,width,height,labelTop);
+    responsiveLabels({buttons:hotspotButtons,anchors:hotspotAnchors,camera,width,height,top:labelTop,officeMode});
   }
   resize();lookAt.copy(targetLook);
   window.siteStartup?.stage('assets');await Promise.all([sprayer.ready,sceneTexturesReady()]);
   const batching=batchStaticScene(world);container.dataset.staticMeshSavings=String(batching.meshesRemoved);
   camera.position.set(lookAt.x+Math.sin(angle)*Math.cos(pitch)*distance,lookAt.y+Math.sin(pitch)*distance,lookAt.z+Math.cos(angle)*Math.cos(pitch)*distance);camera.lookAt(lookAt);
-  seoulLive.animate(performance.now()/1000);hall.setNight(container.dataset.weatherDay!=='true');
+  const prepareTime=performance.now()/1000;
+  seoulLive.animate(prepareTime);hobbies.animate(prepareTime);hall.setNight(container.dataset.weatherDay!=='true');
   window.siteStartup?.stage('frame');
   if(renderer.compileAsync)await renderer.compileAsync(scene,camera);else renderer.compile(scene,camera);
   const firstFrameTime=await new Promise(resolve=>requestAnimationFrame(resolve));

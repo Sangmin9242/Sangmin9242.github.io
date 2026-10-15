@@ -1,6 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 import { GLTFLoader } from './vendor/GLTFLoader.js';
-import { mergeGeometries } from './vendor/BufferGeometryUtils.js';
+import {batchRigidModel} from './rigid-batching.js';
 import { fireproofingCoat } from './fireproofing-coat.js';
 import {loadRobotBuffer} from './asset-loading.js';
 
@@ -38,12 +38,12 @@ export function sprayRobot({parent,position,reducedMotion,target}) {
       if(!nozzle&&/^nozzle_1(?:[:.]\d+)?$/.test(node.userData.name||node.name))nozzle=node;
       if(node.isMesh){node.castShadow=true;node.receiveShadow=true;if(node.material){node.material.metalness=Math.min(node.material.metalness??.2,.75);node.material.roughness=Math.max(node.material.roughness??.4,.38);}}
     });
-    // Merge surfaces inside each leaf part, keeping mechanical link assemblies.
-    const leaves=[];model.traverse(node=>{if(node.children.length>1&&node.children.every(c=>c.isMesh))leaves.push(node);});
-    for(const part of leaves){
-      const sets=new Map();for(const mesh of [...part.children]){if(Array.isArray(mesh.material))continue;const key=mesh.material.uuid;if(!sets.has(key))sets.set(key,{material:mesh.material,meshes:[]});sets.get(key).meshes.push(mesh);}
-      for(const {material,meshes} of sets.values()){if(meshes.length<2)continue;const geometries=meshes.map(mesh=>{const geo=mesh.geometry.clone();geo.applyMatrix4(mesh.matrix);return geo;});const combined=mergeGeometries(geometries,false);if(combined){const mesh=new THREE.Mesh(combined,material);mesh.castShadow=mesh.receiveShadow=true;meshes.forEach(child=>part.remove(child));part.add(mesh);}geometries.forEach(geo=>geo.dispose());}
-    }
+    // Only the reconstructed joint pivots animate; CAD leaf transforms stay rigid.
+    // The nozzle and its descendants keep their geometry and identity for bounds.
+    function markRigidLeaves(node){if(node===nozzle)return;if(node.isMesh&&!node.children.length)node.userData.rigidStatic=true;for(const child of node.children)markRigidLeaves(child);}
+    markRigidLeaves(model);
+    // Each pivot owns one rigid assembly. Keep the nozzle subtree for its live bounds.
+    group.userData.batching=batchRigidModel(model,{joints:joints.map(joint=>joint.node),preserve:nozzle?[nozzle]:[]});
     loaded=true;group.userData.loaded=true;group.userData.joints=joints.length;group.userData.nozzle=!!nozzle;return group;
   }).catch(error=>{console.error('Spray robot model could not load',error);group.userData.error=true;throw error;});
   const axisX=new THREE.Vector3(1,0,0),axisY=new THREE.Vector3(0,1,0),axisZ=new THREE.Vector3(0,0,1),rotation=new THREE.Quaternion();
