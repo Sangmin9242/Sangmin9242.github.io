@@ -1,19 +1,13 @@
 import * as THREE from './vendor/three.module.js';
 import { boardingAvatar } from './boarding-avatar.js?v=20261014-refined';
+import { conferenceGear, carryConferenceGear, parkConferenceGear } from './conference-gear.js';
 
 export function boardingSequence({world,researcher,avatar,plane,box,beam}){
   const person=boardingAvatar();person.scale.setScalar(1.1);person.visible=false;world.add(person);
   researcher.updateMatrixWorld(true);plane.updateMatrixWorld(true);
   const start=avatar.getWorldPosition(new THREE.Vector3());start.y=0;
-  const pickup=new THREE.Vector3(-5.8,0,7.2),luggage=new THREE.Group();
-  world.add(luggage);luggage.position.copy(pickup);
-  box(luggage,[.43,.58,.26],[0,.36,0],0xa76737,{metalness:.25,roughness:.65});
-  for(const x of [-.12,0,.12])box(luggage,[.012,.49,.008],[x,.36,.134],0xc08b55);
-  for(const x of [-.16,.16]){
-    beam(luggage,[x,.59,0],[x,.82,0],.015,0xc7cccc);
-    const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.055,.055,.045,12),new THREE.MeshStandardMaterial({color:0x22282a}));wheel.rotation.z=Math.PI/2;wheel.position.set(x,.07,-.06);luggage.add(wheel);
-  }
-  beam(luggage,[-.16,.82,0],[.16,.82,0],.024,0x273239);
+  const pickup=new THREE.Vector3(-5.8,0,7.2),luggage=conferenceGear();
+  parkConferenceGear(luggage,world,pickup);
   const entry=plane.localToWorld(new THREE.Vector3(-.24,.365,.62));
   const outward=new THREE.Vector3(-1,0,0).transformDirection(plane.matrixWorld),vertical=new THREE.Vector3(0,1,0),right=new THREE.Vector3().crossVectors(vertical,outward);
   const bottom=entry.clone().addScaledVector(outward,3.4);bottom.y=0;
@@ -57,22 +51,23 @@ export function boardingSequence({world,researcher,avatar,plane,box,beam}){
     stairs.rotation.x=-THREE.MathUtils.smoothstep(fold,.6,1)*(Math.PI/2+Math.atan2(entry.y,3.4));
     stairRoot.visible=fold<.999;cabin.visible=opened>.01;data.dataset.boardingFloorVisible=String(cabin.visible);data.dataset.stairFold=String(fold);data.dataset.doorOpen=String(opened);
   }
-  function setTow(active){person.userData.towing=active;if(active){if(luggage.parent!==person)person.add(luggage);luggage.position.set(.23,.01,-.38);luggage.rotation.set(.25,0,0);luggage.scale.setScalar(1/1.1);}}
+  function carry(){carryConferenceGear(luggage,person);}
   function face(direction){person.rotation.y=Math.atan2(direction.x,direction.z);}
   function animate(elapsed){
     if(elapsed<duration){person.visible=true;avatar.visible=false;stairRoot.visible=true;let phase;
       if(elapsed<.65){person.position.copy(start);person.userData.pose(elapsed,false,.45*(1-THREE.MathUtils.smoothstep(elapsed,0,.65)));phase='standing';}
       else if(elapsed<2.1){const t=THREE.MathUtils.clamp((elapsed-.65)/1.45,0,1);person.position.copy(start).lerp(pickup,t);face(pickup.clone().sub(start));person.userData.pose(elapsed,true);phase='walking';}
-      else if(elapsed<2.65){person.position.copy(pickup);setTow(true);face(walk.getTangentAt(0));person.userData.pose(elapsed,false);phase='pickup';}
-      else if(elapsed<8.4){const t=THREE.MathUtils.clamp((elapsed-2.65)/5.75,0,1);person.position.copy(walk.getPointAt(t));face(walk.getTangentAt(t));setTow(true);person.userData.pose(elapsed,true);phase='walking';}
-      else if(elapsed<11.5){const t=THREE.MathUtils.clamp((elapsed-8.4)/3.1,0,1),climb=Math.min(t/.8,1);person.position.copy(bottom).lerp(entry,climb);if(t<.8){const q=1-climb;person.position.y=entry.y-entry.y*((Math.min(11,Math.floor(q*12))+.5)/12)+.01;}if(t>.8)person.position.addScaledVector(outward,-(t-.8)/.2*.65);face(outward.clone().negate());setTow(true);person.userData.pose(elapsed,true,0);person.visible=t<.99;phase='boarding';}
+      else if(elapsed<2.65){person.position.copy(pickup);face(walk.getTangentAt(0));person.userData.pose(elapsed,false);phase='pickup';}
+      else if(elapsed<8.4){const t=THREE.MathUtils.clamp((elapsed-2.65)/5.75,0,1);person.position.copy(walk.getPointAt(t));face(walk.getTangentAt(t));person.userData.pose(elapsed,true);phase='walking';}
+      else if(elapsed<11.5){const t=THREE.MathUtils.clamp((elapsed-8.4)/3.1,0,1),climb=Math.min(t/.8,1);person.position.copy(bottom).lerp(entry,climb);if(t<.8){const q=1-climb;person.position.y=entry.y-entry.y*((Math.min(11,Math.floor(q*12))+.5)/12)+.01;}if(t>.8)person.position.addScaledVector(outward,-(t-.8)/.2*.65);face(outward.clone().negate());person.userData.pose(elapsed,true,0);person.visible=t<.99;phase='boarding';}
       else{person.visible=false;phase=elapsed<13.8?'stairs-folding':'door-closing';}
+      if(elapsed>=2.1)carry();
       mechanism(elapsed);
-      data.dataset.luggageState=elapsed>=11.5?'boarded':person.userData.towing?'towing':'parked';data.dataset.boardingUpright=String(elapsed>=8.4);data.dataset.luggagePosition=JSON.stringify(luggage.getWorldPosition(new THREE.Vector3()).toArray());
+      data.dataset.luggageState=elapsed>=11.5?'boarded':person.userData.carryingConferenceGear?'carrying':'parked';data.dataset.boardingUpright=String(elapsed>=8.4);data.dataset.luggagePosition=JSON.stringify(luggage.userData.conferenceGear.poster.getWorldPosition(new THREE.Vector3()).toArray());
       data.dataset.avatarFeet=JSON.stringify(person.position.toArray());const shot=bottom.clone().lerp(entry,.5).add(new THREE.Vector3(0,.8,0));const cameraPoint=elapsed>=8.4?bottom.clone().add(new THREE.Vector3(0,.8,0)).lerp(shot,THREE.MathUtils.smoothstep(elapsed,8.4,9.2)):person.position.clone().add(new THREE.Vector3(0,.8,0));data.dataset.boardingCameraPoint=JSON.stringify(cameraPoint.toArray());return {point:cameraPoint,cameraOffset:outward.clone().multiplyScalar(5).addScaledVector(right,3).add(new THREE.Vector3(0,2.2,0)),phase,flightElapsed:0};
     }
-    person.visible=false;stairRoot.visible=false;door.position.set(0,0,0);cabin.visible=false;data.dataset.boardingFloorVisible='false';data.dataset.luggageState='boarded';return {point:plane.position.clone(),phase:'boarded',flightElapsed:elapsed-duration};
+    carry();person.visible=false;stairRoot.visible=false;door.position.set(0,0,0);cabin.visible=false;data.dataset.boardingFloorVisible='false';data.dataset.luggageState='boarded';return {point:plane.position.clone(),phase:'boarded',flightElapsed:elapsed-duration};
   }
-  function reset(){lower.rotation.x=0;stairs.rotation.x=0;rails.forEach(r=>r.scale.y=1);person.visible=false;avatar.visible=true;person.userData.towing=false;world.add(luggage);luggage.position.copy(pickup);luggage.rotation.set(0,0,0);luggage.scale.setScalar(1);stairRoot.visible=false;door.position.set(0,0,0);cabin.visible=false;data.dataset.boardingFloorVisible='false';data.dataset.luggageState='parked';}
-  stairRoot.visible=false;cabin.visible=false;return {duration,animate,luggage,start(){person.visible=true;avatar.visible=false;},reset};
+  function reset(){lower.rotation.x=0;stairs.rotation.x=0;rails.forEach(r=>r.scale.y=1);person.visible=false;avatar.visible=true;person.userData.towing=false;parkConferenceGear(luggage,world,pickup);stairRoot.visible=false;door.position.set(0,0,0);cabin.visible=false;data.dataset.boardingFloorVisible='false';data.dataset.luggageState='parked';}
+  stairRoot.visible=false;cabin.visible=false;return {duration,animate,luggage,conferenceGear:luggage,start(){parkConferenceGear(luggage,world,pickup);person.visible=true;avatar.visible=false;},reset};
 }

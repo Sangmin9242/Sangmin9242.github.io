@@ -308,7 +308,7 @@ async function createScene() {
   const seatedStudent=boardingAvatar();seatedStudent.rotation.y=Math.PI;seatedStudent.userData.seated();avatar.add(seatedStudent);
   const workLight=new THREE.PointLight(0xffe3b7,1.1,5);workLight.position.set(-.3,2,-.3);researcher.add(workLight);
   const officeObjects=researchOffice({parent:researcher,box,screenTexture});
-  const seoulLive=seoulEnvironment({world,scene,renderer,sun,rim,hemisphere,researcher,box,getLanguage:()=>lang,reducedMotion:reduceMotion,onCalendar:calendarFocus});
+  const seoulLive=seoulEnvironment({world,scene,renderer,camera,sun,rim,hemisphere,researcher,box,getLanguage:()=>lang,reducedMotion:reduceMotion,onCalendar:calendarFocus});
   // A modest airliner on the road in front of the field office.
   const parkedPlane=airplane({boarding:true});parkedPlane.position.set(-44,-.06,-3);parkedPlane.rotation.y=0;parkedPlane.scale.setScalar(4.4);world.add(parkedPlane);
   const boarding=boardingSequence({world,researcher,avatar,plane:parkedPlane,box,beam});
@@ -395,10 +395,10 @@ async function createScene() {
     recognition.visible=currentPanel!=='robotics';
     sprayer.animate(t);siteWorkers.animate(t);hobbies.animate(t);games.refresh();
     activeJourney().animate(t);
-    seoulLive.animate(t);hall.setNight(container.dataset.weatherDay!=='true');
     if(container.dataset.officeMode!==String(officeMode))container.dataset.officeMode=String(officeMode);if(!departure)container.dataset.view=carMotion.isDriving()?'driving':journeyOpen?'journey':'site';container.dataset.orbitPitch=String(pitch);container.dataset.orbitAngle=String(angle);container.dataset.orbitDistance=String(distance);container.dataset.orbitTarget=JSON.stringify(lookAt.toArray());
     if(robot.userData.loaded){container.dataset.coatingCoverage=String(robot.userData.coatingCoverage||0);container.dataset.robotJoints=robot.userData.joints;container.dataset.robotNozzle=String(robot.userData.nozzle);container.dataset.robotSpraying=String(robot.userData.spraying);container.dataset.robotMotion=String(robot.userData.animationTime||0);container.dataset.sprayDistance=String(robot.userData.sprayDistance||0);container.dataset.nozzlePosition=JSON.stringify(robot.userData.nozzlePosition||[]);}
     if(carMotion.isDriving())cockpit.update();
+    seoulLive.animate(t);hall.setNight(container.dataset.weatherDay!=='true');
     renderer.render(scene,camera);seoulLive.projectSky(camera);
     const labelTop=container.offsetTop;
     activeJourney().updateLabels(camera,width,height,labelTop);
