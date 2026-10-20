@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.js';
+import {batchStaticScene} from './scene-batching.js';
 
 // A small airliner, with its nose along local +Z and wings along X.
 export function airplane({boarding=false}={}) {
@@ -8,7 +9,7 @@ export function airplane({boarding=false}={}) {
   const glass=new THREE.MeshStandardMaterial({color:0x18313e,metalness:.5,roughness:.15});
   const rubber=new THREE.MeshStandardMaterial({color:0x252b2c,roughness:.8});
   const gears=[];
-  function mesh(geometry,material,position=[0,0,0]){const m=new THREE.Mesh(geometry,material);m.position.set(...position);m.castShadow=true;m.receiveShadow=true;group.add(m);return m;}
+  function mesh(geometry,material,position=[0,0,0]){const m=new THREE.Mesh(geometry,material);m.position.set(...position);m.castShadow=true;m.receiveShadow=true;m.userData.staticSite=true;group.add(m);return m;}
   const profile=[[-1.85,.018],[-1.65,.09],[-1.2,.155],[.65,.17],[1.12,.145],[1.4,.1],[1.65,.018]].map(([y,r])=>new THREE.Vector2(r*1.45,y));
   // Curved fuselage skin with a real passenger aperture on its port side.
   const doorShape=(y,z)=>{const dx=Math.abs(z-.62)-.155+.055,dy=Math.abs(y-.61)-.245+.055;return Math.hypot(Math.max(dx,0),Math.max(dy,0))+Math.min(Math.max(dx,dy),0)<.055;};
@@ -23,6 +24,7 @@ export function airplane({boarding=false}={}) {
   }else{body=mesh(new THREE.LatheGeometry(profile,32),white,[0,.62,0]);body.rotation.x=Math.PI/2;}
 
   group.userData.fuselage=body;
+  body.userData.noBatch=true;
   function foil(vertices,material){const s=new THREE.Shape();vertices.forEach(([x,z],i)=>i?s.lineTo(x,z):s.moveTo(x,z));s.closePath();const g=new THREE.ExtrudeGeometry(s,{depth:.035,bevelEnabled:true,bevelSize:.015,bevelThickness:.012,bevelSegments:2,steps:1});const m=mesh(g,material,[0,.58,0]);m.rotation.x=Math.PI/2;return m;}
   for(const side of [-1,1]){
     foil([[side*.13,.34],[side*1.5,-.55],[side*1.56,-.8],[side*.16,-.3]],white);
@@ -46,5 +48,6 @@ export function airplane({boarding=false}={}) {
   const belly=(x,z)=>{let i=0;while(i<profile.length-2&&z>profile[i+1].y)i++;const a=profile[i],b=profile[i+1],r=THREE.MathUtils.lerp(a.x,b.x,(z-a.y)/(b.y-a.y));return .62-Math.sqrt(Math.max(0,r*r-x*x));};
   group.userData.gearConnectionMargins=[.535-belly(-.2,-.35),.535-belly(.2,-.35),.485-belly(0,1.05)];
   group.userData.setGear(0);
+  batchStaticScene(group,{spatial:false});
   return group;
 }

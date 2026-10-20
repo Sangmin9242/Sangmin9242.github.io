@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.js';
+import {batchStaticScene} from './scene-batching.js';
 import { studentHead } from './student-avatar.js?v=20261014-refined';
 
 // All body pivots face +Z. The unscaled standing figure is 1.80 m tall.
@@ -198,5 +199,8 @@ export function sportsAvatar({gender='male',identity='sangmin',kit='football',co
       elbow.rotation.set(-.10-bend*.15,0,0);
     });
   };
-  group.userData.setKit(kit);group.userData.pose(0,false);return group;
+  group.userData.setKit(kit);group.userData.pose(0,false);
+  // Joint and kit visibility groups remain independent; their fixed leaves can merge.
+  group.traverse(node=>{if(node.isMesh&&!node.children.length)node.userData.staticSite=true;});
+  batchStaticScene(group,{spatial:false});return group;
 }

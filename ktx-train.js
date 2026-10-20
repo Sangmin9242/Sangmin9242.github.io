@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.js';
+import {batchStaticScene} from './scene-batching.js';
 
 /** Procedural KTX-inspired train. +Z is forward; setDoor(0) closes, 1 opens. */
 export function ktxTrain({ cars = 3 } = {}) {
@@ -12,7 +13,7 @@ export function ktxTrain({ cars = 3 } = {}) {
   const light = new THREE.MeshStandardMaterial({ color: 0xfff3cf, emissive: 0xffe2a3, emissiveIntensity: 1.4 });
   const box = (parent, w, h, d, x, y, z, material = paint) => {
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
-    mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true;
+    mesh.position.set(x, y, z); mesh.castShadow = true; mesh.receiveShadow = true;mesh.userData.staticSite=true;
     parent.add(mesh); return mesh;
   };
   const rod = (parent, a, b, radius = .025, material = steel) => {
@@ -112,5 +113,7 @@ export function ktxTrain({ cars = 3 } = {}) {
   Object.defineProperty(train.userData,'doorOpen',{ enumerable:true, get:()=>doorOpen });
   train.userData.carCount=count;
   train.userData.doorDimensions={width:.66,height:1.45,floor:.55};
+  // Door groups keep their identity and transforms; only fixed sibling details merge.
+  batchStaticScene(train,{spatial:false});
   return train;
 }

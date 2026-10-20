@@ -53,3 +53,24 @@ Controlled local comparison: separate Chrome launches, 1366 × 768, DPR 1, CPU t
 Nighttime main-view draw calls changed from 2,055 to 1,451. Nighttime overall-frame gains were limited despite fewer draw calls; the complete site can still stutter on slower hardware.
 
 The final automated suite passed 154 tests. Fixed-time/reduced-motion visual comparisons checked daytime site/office/robot/bowling and nighttime site/office. Office screenshots were byte-identical; the other images had at most 0.057% of pixels differing by more than 8 RGB levels. Live Chrome checks separately cover moving joints, games and navigation rather than inferring behavior from frozen screenshots.
+
+## Mobile rendering follow-up (20 October 2026)
+
+Baseline: `158f7ef`. This follow-up only changes rendering internals; homepage content and controls are unchanged. Geometry, materials/textures, DPR cap (1.75), shadow resolution, fixture positions/counts and night light intensities are preserved.
+
+- Compact transport and avatar constructors explicitly mark fixed leaves for parent-local batching. `spatial:false` removes unnecessary cell boundaries within each compact joint, while doors, gear, limbs, hands, kit visibility groups and the addressable fuselage remain independent.
+- All 91 runway fittings now use seven draw objects: one instanced rim, four emissive lens batches, instanced ground pools and instanced camera-facing halos. Halo shaders reuse the vendored Sprite shader with per-instance centres, sizes and colours, retaining attenuation, fog, additive blending and colour conversion.
+- A throwaway transform cache did not improve the measured frame timing and was discarded.
+
+Final paired samples: separate Chrome launches, 390 × 844, device DPR 2/render DPR 1.75, 4× CPU throttling, fixed Seoul day/night weather, eight-second samples. Browser simulation does not emulate a real phone GPU, thermal state or browser. Frame timing varies between runs; these are observed samples, not universal frame-rate promises.
+
+| Scene | Before | After |
+| --- | ---: | ---: |
+| Day site | 18.9 fps | 22.0 fps |
+| Day office | 30.1 fps | 41.1 fps |
+| Night site | 23.7 fps | 24.4 fps |
+| Night office | 48.5 fps | 50.5 fps |
+
+Night site draw calls fell from 1,208 to 928 (23.2%). Day site calls fell from 1,116 to 912. The visible triangle count can increase modestly because batching changes culling granularity; constructor tests retain the exact complete-model triangle totals. Nighttime site gains remain limited, so slower phones can still stutter.
+
+Verification: 171 automated tests; PC/mobile live football and bowling; both boarding routes, carried props, maps and return; all five car trips, driver controls, mirrors and parking return; bundled loading, failure/retry, office book and photo gallery. Day/night fixed-time image comparisons over site/office/bowling/robot views had at most 0.0185% of pixels differing by more than 8 RGB levels. Shader compilation produced no console errors. A read-only review found no actionable regression.

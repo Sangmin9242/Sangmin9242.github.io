@@ -24,3 +24,22 @@ test('all night lighting and fixture geometry remain intact through a day-night-
  for(const item of geometry){assert.equal(item.node.geometry,item.geometry);assert.ok(item.node.parent);}
  assert.equal(nodes.get('#scene').dataset.streetLights,'29');assert.equal(nodes.get('#scene').dataset.workLights,'4');assert.equal(nodes.get('#scene').dataset.runwayFloodLights,'2');
 });
+
+test('all 91 runway fixtures keep their positions, colours and night brightness in bounded draw batches',()=>{
+ const {world,sky}=fixture(),runway=world.getObjectByName('Runway inset lighting');
+ assert.ok(runway,'runway lamps should use a shared rendering group');
+ const meshes=[];runway.traverse(n=>{if(n.isMesh)meshes.push(n);});
+ assert.ok(meshes.length<=8,'fixed fixtures should no longer issue hundreds of independent draws');
+ const rim=runway.getObjectByName('Runway fixture rims'),pool=runway.getObjectByName('Runway light pools'),glow=runway.getObjectByName('Runway light halos');
+ assert.equal(rim.count,91);assert.equal(pool.count,91);assert.equal(glow.count,91);
+ const position=new THREE.Vector3(),matrix=new THREE.Matrix4();rim.getMatrixAt(0,matrix);position.setFromMatrixPosition(matrix);
+ assert.ok(position.distanceTo(new THREE.Vector3(-51.65,-.085,-32))<1e-5);
+ rim.getMatrixAt(90,matrix);position.setFromMatrixPosition(matrix);
+ assert.ok(position.distanceTo(new THREE.Vector3(-38,-.085,34.6))<1e-5);
+ const lenses=meshes.filter(m=>m.name==='Runway fixture lenses');assert.equal(lenses.reduce((n,m)=>n+m.count,0),91);
+ assert.deepEqual(lenses.map(m=>m.material.emissive.getHex()).sort((a,b)=>a-b),[0xffe9b9,0xe9f4ff,0x70e6ae,0xff6c60].sort((a,b)=>a-b));
+ sky.update(nighttime);assert.ok(pool.visible&&glow.visible);assert.ok(lenses.every(m=>m.material.emissiveIntensity===14));
+ assert.equal(pool.material.opacity,.62);assert.equal(glow.material.blending,THREE.AdditiveBlending);
+ sky.update(daytime);assert.ok(!pool.visible&&!glow.visible);assert.ok(lenses.every(m=>m.material.emissiveIntensity===0));
+ assert.equal(nodes.get('#scene').dataset.runwayFixtures,'91');
+});

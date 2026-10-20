@@ -66,8 +66,10 @@ function sceneCounts(root) {
  * userData.staticSite=true; userData.noBatch=true retains an otherwise marked mesh.
  * Parents are retained so labels, picking groups and subsequent group movement work.
  * Source geometries/materials are never disposed because other meshes may share them.
+ * Compact models may opt out of spatial cells with spatial:false; parent/joint
+ * boundaries still apply, so doors, limbs and kit visibility remain independent.
  */
-export function batchStaticScene(root,{cellSize=12}={}) {
+export function batchStaticScene(root,{cellSize=12,spatial=true}={}) {
   if(!Number.isFinite(cellSize)||cellSize<=0)throw new RangeError('cellSize must be positive and finite');
   const before=sceneCounts(root),parents=[];
   root.traverse(object=>{if(object.children.length)parents.push(object);});
@@ -85,7 +87,7 @@ export function batchStaticScene(root,{cellSize=12}={}) {
       const geometry=mesh.geometry;
       if(!bounds.has(geometry))bounds.set(geometry,new Box3().setFromBufferAttribute(geometry.attributes.position));
       bounds.get(geometry).getCenter(center).applyMatrix4(mesh.matrix);
-      const cell=[center.x,center.y,center.z].map(value=>Math.floor(value/cellSize)).join(',');
+      const cell=spatial?[center.x,center.y,center.z].map(value=>Math.floor(value/cellSize)).join(','):'joint';
       const key=[identity(mesh.material),geometryFormat(geometry),mesh.castShadow,mesh.receiveShadow,mesh.layers.mask,mesh.renderOrder,mesh.frustumCulled,identity(mesh.customDepthMaterial),identity(mesh.customDistanceMaterial),cell].join('|');
       if(!buckets.has(key))buckets.set(key,[]);
       buckets.get(key).push(mesh);

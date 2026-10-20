@@ -1,4 +1,5 @@
 import * as THREE from './vendor/three.module.js';
+import {batchStaticScene} from './scene-batching.js';
 import { studentHead, studentShirt, studentJacket } from './student-avatar.js?v=20261014-refined';
 
 export function boardingAvatar({worker=false,sport=false}={}){
@@ -13,5 +14,8 @@ export function boardingAvatar({worker=false,sport=false}={}){
   for(const side of [-1,1]){const leg=new THREE.Group();leg.position.x=side*.12;hip.add(leg);limb(leg,.38,.065,pants);const knee=new THREE.Group();knee.position.y=-.38;leg.add(knee);limb(knee,.38,.055,pants);oval(knee,[.075,.05,.13],[0,-.38,.06],shoe);legs.push({leg,knee,side});const arm=new THREE.Group();arm.position.set(side*.24,.49,0);upper.add(arm);limb(arm,.29,.055,cloth);const elbow=new THREE.Group();elbow.position.y=-.29;arm.add(elbow);limb(elbow,.25,.044,cloth);oval(elbow,[.045,.06,.04],[0,-.28,0],skin);arms.push({arm,elbow,side});}
   group.userData.pose=(time,walking,crouch=0)=>{hip.position.y=.86-crouch*.42+(walking?Math.sin(time*16)*.014:0);upper.rotation.x=crouch*1.35;legs.forEach(({leg,knee,side})=>{const step=walking?Math.sin(time*8+side*Math.PI/2):0;leg.rotation.x=step*.38-crouch*.8;knee.rotation.x=Math.max(0,-step)*.65+crouch*1.4;});arms.forEach(({arm,elbow,side})=>{arm.rotation.x=(walking?-Math.sin(time*8+side*Math.PI/2)*.32:0)-crouch*.4;elbow.rotation.x=-.12;if(group.userData.towing&&side===1){arm.rotation.x=.35;arm.rotation.z=-.12;elbow.rotation.x=-.1;}});};
   group.userData.seated=()=>{hip.position.y=.58;upper.rotation.x=.10;legs.forEach(({leg,knee})=>{leg.rotation.x=-Math.PI/2;knee.rotation.x=Math.PI/2;});arms.forEach(({arm,elbow})=>{arm.rotation.x=-.95;elbow.rotation.x=-.65;});};
-  group.userData.sportRig={hip,upper,legs,arms};group.userData.headMount=upper;group.userData.pose(0,false);return group;
+  group.userData.sportRig={hip,upper,legs,arms};group.userData.headMount=upper;group.userData.pose(0,false);
+  // The rig animates groups. All geometry leaves are fixed within their own joint.
+  group.traverse(node=>{if(node.isMesh&&!node.children.length)node.userData.staticSite=true;});
+  batchStaticScene(group,{spatial:false});return group;
 }
